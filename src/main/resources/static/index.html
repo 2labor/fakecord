@@ -1,109 +1,209 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>FakeCord MVP</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FakeCord | Java WebSocket Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.2/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #36393f; color: white; }
-        #chat-page { width: 400px; background: #2f3136; padding: 20px; border-radius: 8px; margin-top: 50px; }
-        #message-area { height: 300px; overflow-y: auto; border: 1px solid #202225; padding: 10px; margin-bottom: 10px; }
-        .message { margin-bottom: 8px; }
-        .message .userName { font-weight: bold; color: #7289da; }
-        .event-message { font-style: italic; color: #8e9297; text-align: center; }
-        input { width: 80%; padding: 10px; border: none; border-radius: 4px; }
-        button { padding: 10px; background: #7289da; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .hidden { display: none; }
+        :root {
+            --bg-dark: #2f3136;
+            --bg-panel: #36393f;
+            --bg-chat: #40444b;
+            --discord-blue: #5865f2;
+            --text-main: #dcddde;
+            --text-muted: #72767d;
+        }
+
+        .hidden { display: none !important; }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg-dark); 
+            color: var(--text-main); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+
+        #username-page, #chat-page { 
+            background: var(--bg-panel); 
+            padding: 24px; 
+            border-radius: 8px; 
+            width: 450px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+        }
+
+        #message-area { 
+            height: 350px; 
+            overflow-y: auto; 
+            border: 1px solid #202225; 
+            margin-bottom: 15px; 
+            padding: 15px; 
+            background: var(--bg-chat);
+            border-radius: 4px;
+        }
+
+        .system-msg { font-size: 0.9em; font-style: italic; margin: 8px 0; }
+        .join-msg { color: #3ba55c; }
+        .leave-msg { color: #ed4245; }
+        .error-msg { color: #faa61a; font-weight: bold; }
+
+        input { 
+            width: 80%; 
+            padding: 12px; 
+            border-radius: 4px; 
+            border: 1px solid #202225; 
+            background: #202225; 
+            color: white;
+            outline: none;
+        }
+
+        button { 
+            padding: 12px 20px; 
+            cursor: pointer; 
+            background: var(--discord-blue); 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        button:hover { background: #4752c4; }
+
+        .error-text {
+            color: #ed4245;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
-<div id="username-page">
-    <h2>Enter your name: </h2>
-    <input type="text" id="name" placeholder="Username" />
-    <button onclick="connect()">Join chat</button>
-</div>
+    <div id="username-page">
+        <h2 style="text-align: center;">Welcome to FakeCord</h2>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="name" placeholder="Enter username (2-20 chars)..." autocomplete="off">
+            <button onclick="connect()">Join</button>
+        </div>
+    </div>
 
-<div id="chat-page" class="hidden">
-    <div id="message-area"></div>
-    <input type="text" id="message" placeholder="Enter your message..." />
-    <button onclick="sendMessage()">Send</button>
-</div>
+    <div id="chat-page" class="hidden">
+        <div id="message-area"></div>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="message" placeholder="Type a message..." autocomplete="off">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.4/sockjs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script>
+        var stompClient = null;
+        var username = null;
 
-<script>
-    let stompClient = null;
-    let username = null;
-
-    function connect() {
-        username = document.querySelector('#name').value.trim();
-        if(username) {
-            document.querySelector('#username-page').classList.add('hidden');
-            document.querySelector('#chat-page').classList.remove('hidden');
-
-            const socket = new SockJS('/ws');
-            stompClient = Stomp.over(socket);
-
-            stompClient.connect({}, onConnected, onError);
-        }
-    }
-
-    function sendMessage() {
-        const messageContent = document.querySelector('#message').value.trim();
-        if(messageContent && stompClient) {
-            const chatMessage = {
-                userName: username,
-                content: messageContent,
-                type: 'CHAT'
-            };
-            stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
-            document.querySelector('#message').value = '';
-        }
-    }
-
-    function onConnected() {
-        stompClient.subscribe('/topic/public', onMessageReceived);
-
-        stompClient.send("/app/chat.addUser", {}, JSON.stringify({userName: username, type: 'JOIN'}));
-    }
-
-    function onMessageReceived(payload) {
-        const message = JSON.parse(payload.body);
-        console.log("Message received from server:", message);
-
-        const messageArea = document.querySelector('#message-area');
-        const messageElement = document.createElement('div');
-
-        if(message.type === 'JOIN') {
-            messageElement.classList.add('event-message');
-            messageElement.textContent = (message.userName || 'Unknown') + ' joined the chat!';
-        } else if (message.type === 'LEAVE') {
-            messageElement.classList.add('event-message');
-            messageElement.textContent = (message.userName || 'Unknown') + ' left the chat';
-        } else {
-            messageElement.classList.add('message');
-            const userNameElement = document.createElement('span');
-            userNameElement.className = 'userName';
-            userNameElement.style.fontWeight = 'bold';
-            userNameElement.style.color = '#7289da';
-            userNameElement.innerText = (message.userName || 'Unknown') + ": ";
+        function connect() {
+            username = document.querySelector('#name').value.trim();
             
-            const textElement = document.createElement('span');
-            textElement.innerText = message.content || '';
-            
-            messageElement.appendChild(userNameElement);
-            messageElement.appendChild(textElement);
+            if(username) {
+                var socket = new SockJS('/ws');
+                stompClient = Stomp.over(socket);
+                stompClient.debug = null; // Clean console
+
+                stompClient.connect({}, onConnected, function(err) {
+                    alert("Connection error: " + err);
+                });
+            } else {
+                alert("Please enter a username!");
+            }
         }
 
-        if (messageArea) {
-            messageArea.appendChild(messageElement);
+        function onConnected() {
+            // 1. Subscribe to public topic
+            stompClient.subscribe('/topic/public', onMessageReceived);
+
+            // 2. Register user at backend
+            stompClient.send("/app/chat.addUser",
+                {},
+                JSON.stringify({userName: username, type: 'JOIN'})
+            );
+        }
+
+        function onMessageReceived(payload) {
+            var message = JSON.parse(payload.body);
+
+            // --- VALIDATION ERROR HANDLING ---
+            if (message.type === 'ERROR') {
+                // 1. Show the error to the user
+                alert("ACCESS DENIED: " + message.content);
+                
+                // 2. Disconnect from the server immediately
+                if (stompClient !== null) {
+                    stompClient.disconnect(function() {
+                        console.log("Disconnected due to validation error.");
+                    });
+                }
+                
+                // 3. Reset the UI (optional: clear the input)
+                document.querySelector('#name').value = '';
+                return; 
+            }
+
+            // --- JOIN CONFIRMATION ---
+            if (message.type === 'JOIN') {
+                if (message.userName === username) {
+                    document.querySelector('#username-page').classList.add('hidden');
+                    document.querySelector('#chat-page').classList.remove('hidden');
+                }
+                appendSystemMessage(message.userName + " joined the chat", "join-msg");
+            }
+            
+            // --- CHAT MESSAGE ---
+            else if (message.type === 'CHAT') {
+                var el = document.createElement('div');
+                el.innerHTML = `<span style="color: #00aff4; font-weight:bold;">${message.userName}:</span> ${message.content}`;
+                el.style.marginBottom = "5px";
+                messageArea.appendChild(el);
+            }
+            
+            // --- LEAVE MESSAGE ---
+            else if (message.type === 'LEAVE') {
+                appendSystemMessage(message.userName + " left the chat", "leave-msg");
+            }
+
             messageArea.scrollTop = messageArea.scrollHeight;
         }
-    }
 
-    function onError() {
-        alert('Error while connection WebSocket!');
-    }
-</script>
+        function appendSystemMessage(text, className) {
+            var messageArea = document.querySelector('#message-area');
+            var el = document.createElement('div');
+            el.className = "system-msg " + className;
+            el.textContent = text;
+            messageArea.appendChild(el);
+        }
+
+        function sendMessage() {
+            var messageInput = document.querySelector('#message');
+            var messageContent = messageInput.value.trim();
+            
+            if(messageContent && stompClient) {
+                var chatMessage = {
+                    userName: username,
+                    content: messageContent,
+                    type: 'CHAT'
+                };
+                stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
+                messageInput.value = '';
+            }
+        }
+
+        // Allow sending with Enter key
+        document.querySelector('#message').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
 </body>
 </html>
