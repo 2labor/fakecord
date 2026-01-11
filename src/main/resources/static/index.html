@@ -133,7 +133,8 @@
         }
 
         function onMessageReceived(payload) {
-            var message = JSON.parse(payload.body);
+            var message = JSON.parse(payload.body);            
+            var messageArea = document.querySelector('#message-area');
 
             // --- VALIDATION ERROR HANDLING ---
             if (message.type === 'ERROR') {

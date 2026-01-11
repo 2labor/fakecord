@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.model.ChatMessage;
+import com._labor.fakecord.model.MessageType;
 
 @Service
 public class ChatValidator {
@@ -20,6 +21,8 @@ public class ChatValidator {
   }
 
   private boolean isContentValid(ChatMessage m) {
+    if (m.getType() != MessageType.CHAT) return true;
+
     String content = m.getContent();
     return content != null && !content.trim().isEmpty() && content.length() <= 500;
   }
