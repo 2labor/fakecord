@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FakeCord MVP</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #36393f; color: white; }
+        #chat-page { width: 400px; background: #2f3136; padding: 20px; border-radius: 8px; margin-top: 50px; }
+        #message-area { height: 300px; overflow-y: auto; border: 1px solid #202225; padding: 10px; margin-bottom: 10px; }
+        .message { margin-bottom: 8px; }
+        .message .userName { font-weight: bold; color: #7289da; }
+        .event-message { font-style: italic; color: #8e9297; text-align: center; }
+        input { width: 80%; padding: 10px; border: none; border-radius: 4px; }
+        button { padding: 10px; background: #7289da; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="username-page">
+    <h2>Enter your name: </h2>
+    <input type="text" id="name" placeholder="Username" />
+    <button onclick="connect()">Join chat</button>
+</div>
+
+<div id="chat-page" class="hidden">
+    <div id="message-area"></div>
+    <input type="text" id="message" placeholder="Enter your message..." />
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.4/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+<script>
+    let stompClient = null;
+    let username = null;
+
+    function connect() {
+        username = document.querySelector('#name').value.trim();
+        if(username) {
+            document.querySelector('#username-page').classList.add('hidden');
+            document.querySelector('#chat-page').classList.remove('hidden');
+
+            const socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect({}, onConnected, onError);
+        }
+    }
+
+    function sendMessage() {
+        const messageContent = document.querySelector('#message').value.trim();
+        if(messageContent && stompClient) {
+            const chatMessage = {
+                userName: username,
+                content: messageContent,
+                type: 'CHAT'
+            };
+            stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
+            document.querySelector('#message').value = '';
+        }
+    }
+
+    function onConnected() {
+        stompClient.subscribe('/topic/public', onMessageReceived);
+
+        stompClient.send("/app/chat.addUser", {}, JSON.stringify({userName: username, type: 'JOIN'}));
+    }
+
+    function onMessageReceived(payload) {
+        const message = JSON.parse(payload.body);
+        console.log("Message received from server:", message);
+
+        const messageArea = document.querySelector('#message-area');
+        const messageElement = document.createElement('div');
+
+        if(message.type === 'JOIN') {
+            messageElement.classList.add('event-message');
+            messageElement.textContent = (message.userName || 'Unknown') + ' joined the chat!';
+        } else if (message.type === 'LEAVE') {
+            messageElement.classList.add('event-message');
+            messageElement.textContent = (message.userName || 'Unknown') + ' left the chat';
+        } else {
+            messageElement.classList.add('message');
+            const userNameElement = document.createElement('span');
+            userNameElement.className = 'userName';
+            userNameElement.style.fontWeight = 'bold';
+            userNameElement.style.color = '#7289da';
+            userNameElement.innerText = (message.userName || 'Unknown') + ": ";
+            
+            const textElement = document.createElement('span');
+            textElement.innerText = message.content || '';
+            
+            messageElement.appendChild(userNameElement);
+            messageElement.appendChild(textElement);
+        }
+
+        if (messageArea) {
+            messageArea.appendChild(messageElement);
+            messageArea.scrollTop = messageArea.scrollHeight;
+        }
+    }
+
+    function onError() {
+        alert('Error while connection WebSocket!');
+    }
+</script>
+</body>
+</html>
