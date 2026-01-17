@@ -5,10 +5,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -86,14 +86,8 @@ public class ChatMessageImpl implements ChatMessageServices {
   }
 
   @Override
-  public List<ChatMessage> getLastMessages(int count) {
-    Pageable limit = PageRequest.of(0, count, Sort.by("createdAt").descending());
-
-    List<ChatMessage> messages = repository.findAll(limit).getContent();
-
-    return messages.stream()
-      .sorted(Comparator.comparing(ChatMessage::getCreatedAt))
-      .collect(Collectors.toList());
+  public Page<ChatMessage> getMessagesPage(Pageable pageable) {
+    return repository.findAll(pageable);
   }
   
 }
