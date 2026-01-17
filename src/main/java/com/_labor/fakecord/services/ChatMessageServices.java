@@ -8,3 +8,4 @@ public interface ChatMessageServices {
   ChatMessage createMessage(ChatMessage message);
   ChatMessage updChatMessage(UUID chatMessageId,ChatMessage message);
 }
+ 

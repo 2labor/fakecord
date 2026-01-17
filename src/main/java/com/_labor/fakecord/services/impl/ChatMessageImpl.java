@@ -33,13 +33,17 @@ public class ChatMessageImpl implements ChatMessageServices {
       throw new IllegalArgumentException("Message have to have context");
     }
 
-    User user = userRepository.findById(message.getUser().getId())
-      .orElseThrow(() -> new IllegalArgumentException("Author not found"));
-
     if (null == message.getUser()) {
       message.setType(MessageType.ERROR);
       throw new IllegalArgumentException("Message have to have author!");
     }
+
+    User user = userRepository.findByName(message.getUser().getName())
+      .orElseGet(() -> {
+        LocalDateTime now = LocalDateTime.now();
+        return userRepository.save(new User(null, message.getUser().getName(), now, now));
+      }
+    );
 
     LocalDateTime now = LocalDateTime.now();
     return repository.save(new ChatMessage(

@@ -1,16 +1,36 @@
 package com._labor.fakecord.controller;
 
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
 
+import com._labor.fakecord.domain.dto.ChatMessageDto;
 import com._labor.fakecord.domain.entity.ChatMessage;
+import com._labor.fakecord.domain.mappper.ChatMessageMapper;
+import com._labor.fakecord.services.ChatMessageServices;
 
 @Controller
 public class ChatController {
-  @MessageMapping("/general")
-  @SendTo("/topic/general")
-  public ChatMessage sendMessage(ChatMessage ms) {
-    return
+
+  private final ChatMessageMapper chatMapper;
+  private final ChatMessageServices service;
+
+  public ChatController(ChatMessageMapper chatMapper, ChatMessageServices service) {
+    this.chatMapper = chatMapper;
+    this.service = service;
+  }
+
+  @MessageMapping("/chat.send") // parse message from front-end that was sended on "/app/chat.send"
+  @SendTo("/topic/public") // push message to all subscribers of canal "/topic/public"
+  public ChatMessageDto sendMessage(@Payload ChatMessageDto dto) {
+
+    System.out.println("!!! MESSAGE RECEIVED IN CONTROLLER: " + dto.content());
+
+    // ChatMessage message = chatMapper.fromDto(dto);
+
+    // ChatMessage savedMessage = service.createMessage(message);
+
+    return dto;
   }
 }
