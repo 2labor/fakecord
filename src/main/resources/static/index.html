@@ -69,7 +69,6 @@
         }
 
         function showMessage(msg) {
-            console.log("Rendering message object:", msg);
             const container = document.getElementById('messages');
             const el = document.createElement('div');
             
@@ -83,6 +82,22 @@
             container.appendChild(el);
             container.scrollTop = container.scrollHeight;
         }
+
+        function loadHistory() {
+            fetch('/api/messages')
+                .then(response => response.json())
+                .then(messages => {
+                    messages.forEach(msg => {
+                        showMessage(msg);
+                    });
+                })
+                .catch(error => console.error('Error while loading:', error));
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                loadHistory();
+                connect();
+            });
     </script>
 </body>
 </html>

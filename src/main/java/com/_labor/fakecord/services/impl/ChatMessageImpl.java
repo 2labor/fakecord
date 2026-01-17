@@ -1,9 +1,16 @@
 package com._labor.fakecord.services.impl;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.entity.ChatMessage;
@@ -76,6 +83,17 @@ public class ChatMessageImpl implements ChatMessageServices {
     existingChatMessage.setUpdatedAt(LocalDateTime.now());
 
     return repository.save(existingChatMessage);
+  }
+
+  @Override
+  public List<ChatMessage> getLastMessages(int count) {
+    Pageable limit = PageRequest.of(0, count, Sort.by("createdAt").descending());
+
+    List<ChatMessage> messages = repository.findAll(limit).getContent();
+
+    return messages.stream()
+      .sorted(Comparator.comparing(ChatMessage::getCreatedAt))
+      .collect(Collectors.toList());
   }
   
 }
