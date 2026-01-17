@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com._labor.fakecord.domain.entity.MessageType;
-import com._labor.fakecord.domain.entity.User;
 
 public record ChatMessageDto (
   UUID id,

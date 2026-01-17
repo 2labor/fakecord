@@ -39,7 +39,7 @@
         let userName = null;
 
         function connect() {
-            userName = document.getElementById('name').value;
+            userName = document.getElementById('name').value.trim();
             if (!userName) return alert("Please enter a name");
 
             const socket = new SockJS('/ws-chat');
@@ -69,6 +69,7 @@
         }
 
         function showMessage(msg) {
+            console.log("Rendering message object:", msg);
             const container = document.getElementById('messages');
             const el = document.createElement('div');
             

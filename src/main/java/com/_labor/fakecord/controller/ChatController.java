@@ -1,5 +1,4 @@
 package com._labor.fakecord.controller;
-
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -24,13 +23,10 @@ public class ChatController {
   @MessageMapping("/chat.send") // parse message from front-end that was sended on "/app/chat.send"
   @SendTo("/topic/public") // push message to all subscribers of canal "/topic/public"
   public ChatMessageDto sendMessage(@Payload ChatMessageDto dto) {
+    ChatMessage message = chatMapper.fromDto(dto);
 
-    System.out.println("!!! MESSAGE RECEIVED IN CONTROLLER: " + dto.content());
+    ChatMessage savedMessage = service.createMessage(message);
 
-    // ChatMessage message = chatMapper.fromDto(dto);
-
-    // ChatMessage savedMessage = service.createMessage(message);
-
-    return dto;
+    return chatMapper.toDto(savedMessage);
   }
 }
