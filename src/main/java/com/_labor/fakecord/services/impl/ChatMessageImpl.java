@@ -1,16 +1,11 @@
 package com._labor.fakecord.services.impl;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.entity.ChatMessage;
@@ -64,7 +59,7 @@ public class ChatMessageImpl implements ChatMessageServices {
 
   @Transactional
   @Override
-  public ChatMessage updChatMessage(UUID chatMessageId,ChatMessage message) {
+  public ChatMessage updChatMessage(UUID chatMessageId, ChatMessage message) {
     if (null == message.getId()) {
       throw new IllegalArgumentException("Message don't have an id!");
     }

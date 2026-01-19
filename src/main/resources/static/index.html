@@ -2,49 +2,59 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Fakecord MVP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fakecord | Global Chat</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #36393f; color: #dcddde; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        #login-container, #chat-container { background: #2f3136; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 400px; }
-        #chat-container { display: none; width: 600px; height: 600px; flex-direction: column; }
+        /* Modern Discord-inspired dark theme */
+        body { font-family: 'Segoe UI', sans-serif; background-color: #36393f; color: #dcddde; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         
-        #messages { flex-grow: 1; overflow-y: auto; margin-bottom: 10px; border-bottom: 1px solid #40444b; padding: 10px; display: flex; flex-direction: column; }
+        #login-container, #chat-container { background: #2f3136; padding: 24px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); width: 400px; }
+        #chat-container { display: none; width: 700px; height: 75vh; flex-direction: column; }
         
-        .msg { margin: 8px 0; line-height: 1.4; border-bottom: 1px solid rgba(255,255,255,0.02); padding-bottom: 4px; }
-        .msg-header { display: flex; align-items: baseline; gap: 8px; }
-        .username { color: #fff; font-weight: bold; font-size: 0.95rem; }
-        .timestamp { color: #72767d; font-size: 0.7rem; }
-        .msg-content { color: #dcddde; font-size: 0.9rem; margin-top: 2px; }
+        /* Message Area Styles */
+        #messages { flex-grow: 1; overflow-y: auto; margin-bottom: 15px; padding-right: 10px; display: flex; flex-direction: column; }
+        .msg { margin: 12px 0; border-left: 2px solid transparent; transition: 0.2s; }
+        .msg:hover { background: rgba(255,255,255,0.02); }
+        .msg-header { display: flex; align-items: baseline; gap: 10px; }
+        .username { color: #fff; font-weight: 600; font-size: 1rem; }
+        .timestamp { color: #72767d; font-size: 0.75rem; }
+        .msg-content { color: #dcddde; margin-top: 4px; line-height: 1.5; }
         
-        .msg-join { color: #43b581; font-style: italic; text-align: center; font-size: 0.8rem; margin: 10px 0; }
-        .msg-left { color: #f04747; font-style: italic; text-align: center; font-size: 0.8rem; margin: 10px 0; }
-
-        input { background: #40444b; border: none; color: white; padding: 10px; border-radius: 4px; width: calc(100% - 22px); outline: none; }
-        input:focus { box-shadow: 0 0 0 2px #5865f2; }
-        button { background: #5865f2; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; margin-top: 10px; width: 100%; font-weight: bold; transition: 0.2s; }
+        /* Status message styles (Join/Leave) */
+        .msg-join { color: #43b581; font-style: italic; text-align: center; font-size: 0.85rem; margin: 15px 0; }
+        
+        /* Input & UI Controls */
+        .input-area { display: flex; gap: 10px; position: relative; }
+        input { background: #40444b; border: none; color: white; padding: 12px; border-radius: 5px; width: 100%; outline: none; }
+        button { background: #5865f2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
         button:hover { background: #4752c4; }
-        
-        /* Scrollbar */
-        #messages::-webkit-scrollbar { width: 8px; }
-        #messages::-webkit-scrollbar-track { background: #2e3338; }
-        #messages::-webkit-scrollbar-thumb { background: #202225; border-radius: 4px; }
+
+        /* Error Notification Area */
+        #error-overlay { color: #f04747; background: rgba(240, 71, 71, 0.1); padding: 8px; border-radius: 4px; margin-bottom: 10px; display: none; text-align: center; font-size: 0.9rem; border: 1px solid #f04747; }
+
+        /* Custom Scrollbar */
+        #messages::-webkit-scrollbar { width: 6px; }
+        #messages::-webkit-scrollbar-thumb { background: #202225; border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <div id="login-container">
-        <h3 style="text-align: center;">Enter Discord</h3>
-        <input type="text" id="name" placeholder="Username..." onkeypress="if(event.key==='Enter') connect()">
-        <button onclick="connect()">Join Chat</button>
+        <h2 style="text-align: center; color: white;">Welcome back!</h2>
+        <p style="text-align: center; color: #b9bbbe;">Enter a username to start chatting</p>
+        <div id="login-error" style="color: #f04747; font-size: 0.8rem; margin-bottom: 5px;"></div>
+        <input type="text" id="name" placeholder="Username (3-24 chars)" maxlength="24">
+        <button id="joinBtn">Join Chat</button>
     </div>
 
     <div id="chat-container">
+        <div id="error-overlay"></div>
         <div id="messages"></div>
-        <div style="display: flex; padding-top: 10px;">
-            <input type="text" id="content" placeholder="Type a message..." onkeypress="if(event.key==='Enter') send('MESSAGE')">
-            <button onclick="send('MESSAGE')" style="width: 80px; margin: 0 0 0 10px;">Send</button>
+        <div class="input-area">
+            <input type="text" id="content" placeholder="Send a message to #global">
+            <button id="sendBtn">Send</button>
         </div>
     </div>
 
@@ -55,86 +65,107 @@
         let isLoading = false;
         let allHistoryLoaded = false;
 
+        /**
+         * Initialize WebSocket connection via STOMP
+         */
         function connect() {
             userName = document.getElementById('name').value.trim();
-            if (!userName) return alert("Please enter a name");
+            // if (userName.length < 3) return alert("Username too short!");
 
             const socket = new SockJS('/ws-chat');
             stompClient = Stomp.over(socket);
-            stompClient.debug = null;
+            stompClient.debug = null; // Disable console spam
 
             stompClient.connect({}, () => {
+                // UI Switch
                 document.getElementById('login-container').style.display = 'none';
                 document.getElementById('chat-container').style.display = 'flex';
                 
+                // Initial data load
                 loadHistory(true); 
 
+                // 1. Subscribe to Global Broadcasts
                 stompClient.subscribe('/topic/public', (payload) => {
                     const msg = JSON.parse(payload.body);
                     renderMessage(msg, false);
                 });
 
+                // 2. Subscribe to Private Validation Errors
+                stompClient.subscribe('/user/topic/errors', (error) => {
+                    displayError(error.body);
+                });
+
+                // Notify others about joining
                 send('JOIN');
+            }, (error) => {
+                console.error("Connection lost:", error);
             });
         }
 
+        /**
+         * Fetch message history from REST API
+         */
         function loadHistory(isInitialLoad = false) {
             if (isLoading || allHistoryLoaded) return;
             isLoading = true;
 
             const container = document.getElementById('messages');
-            const oldScrollHeight = container.scrollHeight;
+            const oldHeight = container.scrollHeight;
 
             fetch(`/api/messages?page=${currentPage}&size=20`)
-                .then(response => response.json())
+                .then(res => res.json())
                 .then(messages => {
                     if (messages.length < 20) allHistoryLoaded = true;
-
+                    
                     if (messages.length > 0) {
+                        // Reverse messages to show oldest first at top
                         messages.forEach(msg => renderMessage(msg, true));
-
                         currentPage++;
 
+                        // Maintain scroll position after loading old messages
                         if (isInitialLoad) {
                             container.scrollTop = container.scrollHeight;
                         } else {
-                            container.scrollTop = container.scrollHeight - oldScrollHeight;
+                            container.scrollTop = container.scrollHeight - oldHeight;
                         }
                     }
-                    isLoading = false;
-                })
-                .catch(err => {
-                    console.error("History error:", err);
                     isLoading = false;
                 });
         }
 
+        /**
+         * Dispatch message to the backend @MessageMapping
+         */
         function send(type) {
-            const contentInput = document.getElementById('content');
-            const val = contentInput.value.trim();
+            const input = document.getElementById('content');
+            const val = input.value.trim();
+            
             if (type === 'MESSAGE' && !val) return;
 
-            const message = {
-                content: type === 'JOIN' ? userName + " joined the chat" : val,
+            const messagePayload = {
+                content: type === 'JOIN' ? `${userName} landed in the chat!` : val,
                 type: type,
                 userDto: { name: userName }
             };
-            stompClient.send("/app/chat.send", {}, JSON.stringify(message));
-            contentInput.value = '';
+
+            stompClient.send("/app/chat.send", {}, JSON.stringify(messagePayload));
+            input.value = '';
         }
 
+        /**
+         * Create HTML elements for messages
+         */
         function renderMessage(msg, prepend = false) {
             const container = document.getElementById('messages');
             const el = document.createElement('div');
             
-            let timeDisplay = "";
+            let timeStr = "Just now";
             if (msg.timestamp) {
+                // Handling LocalDateTime array or string
                 const d = Array.isArray(msg.timestamp) 
                     ? new Date(msg.timestamp[0], msg.timestamp[1]-1, msg.timestamp[2], msg.timestamp[3], msg.timestamp[4])
                     : new Date(msg.timestamp);
-
-                timeDisplay = d.getHours().toString().padStart(2, '0') + ":" + 
-                              d.getMinutes().toString().padStart(2, '0');
+                timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
 
             if (msg.type === 'JOIN') {
@@ -142,11 +173,11 @@
                 el.textContent = msg.content;
             } else {
                 el.className = 'msg';
-                const sender = msg.userDto ? msg.userDto.name : "System";
+                const sender = msg.userDto?.name || "System";
                 el.innerHTML = `
                     <div class="msg-header">
                         <span class="username">${sender}</span>
-                        <span class="timestamp">${timeDisplay}</span>
+                        <span class="timestamp">${timeStr}</span>
                     </div>
                     <div class="msg-content">${msg.content}</div>
                 `;
@@ -156,16 +187,31 @@
                 container.prepend(el);
             } else {
                 container.appendChild(el);
-                container.scrollTop = container.scrollHeight;
+                container.scrollTop = container.scrollHeight; // Focus on new message
             }
         }
 
-        document.getElementById('messages').addEventListener('scroll', function() {
-            if (this.scrollTop < 5) {
-                loadHistory(false);
-            }
-        });
+        /**
+         * Display backend validation errors on the UI
+         */
+        function displayError(message) {
+            const overlay = document.getElementById('error-overlay');
+            overlay.innerText = message;
+            overlay.style.display = 'block';
+            setTimeout(() => { overlay.style.display = 'none'; }, 5000);
+        }
 
+        // Event Listeners
+        document.getElementById('joinBtn').onclick = connect;
+        document.getElementById('sendBtn').onclick = () => send('MESSAGE');
+        
+        // Infinite scroll for history
+        document.getElementById('messages').onscroll = function() {
+            if (this.scrollTop < 5) loadHistory(false);
+        };
+
+        // Keyboard support
+        document.getElementById('content').onkeypress = (e) => { if(e.key === 'Enter') send('MESSAGE'); };
     </script>
 </body>
 </html>
