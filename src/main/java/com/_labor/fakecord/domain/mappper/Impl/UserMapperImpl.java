@@ -13,9 +13,8 @@ public class UserMapperImpl implements UserMapper {
   public User fromDto(UserDto dto) {
     return new User(
       dto.id(),
-      dto.name(), 
-      null, 
-      null);
+      dto.name()
+    );
   }
 
   @Override

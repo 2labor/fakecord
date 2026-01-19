@@ -9,4 +9,5 @@ import com._labor.fakecord.domain.entity.User;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
   Optional<User> findByName(String name);
+  boolean existsByName(String name);
 }

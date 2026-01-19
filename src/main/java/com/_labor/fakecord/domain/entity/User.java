@@ -8,6 +8,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
@@ -28,14 +30,25 @@ public class User {
   @Column(name = "updated", nullable = false)
   private LocalDateTime updatedAt;
 
-  public User(UUID id, String name, LocalDateTime createdAt, LocalDateTime updatedAt) {
+  public User(UUID id, String name) {
     this.id = id;
     this.name = name;
-    this.createdAt = createdAt;
-    this.updatedAt = updatedAt;
   }
 
   public User(){}
+
+  @PrePersist
+  public void onCreate() {
+    LocalDateTime now = LocalDateTime.now();
+
+    this.createdAt = now;
+    this.updatedAt = now;
+  }
+
+  @PreUpdate
+  public void onUpdate() {
+    this.updatedAt = LocalDateTime.now();
+  }
 
   public UUID getId() {
     return id;

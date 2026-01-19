@@ -18,9 +18,7 @@ public class ChatMessageMapperImpl implements ChatMessageMapper {
     if (null != dto.userDto()) {
       user = new User(
         dto.userDto().id(),
-        dto.userDto().name(),
-        null, 
-        null
+        dto.userDto().name()
       );
     }
 

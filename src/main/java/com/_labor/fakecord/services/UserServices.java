@@ -1,7 +1,7 @@
 package com._labor.fakecord.services;
 
-import com._labor.fakecord.domain.entity.User;
+import com._labor.fakecord.domain.dto.UserDto;
 
 public interface UserServices {
-  User createUser(User user);
+  UserDto createUser(UserDto userDto);
 }

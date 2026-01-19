@@ -42,8 +42,7 @@ public class ChatMessageImpl implements ChatMessageServices {
 
     User user = userRepository.findByName(message.getUser().getName())
       .orElseGet(() -> {
-        LocalDateTime now = LocalDateTime.now();
-        return userRepository.save(new User(null, message.getUser().getName(), now, now));
+        return userRepository.save(new User(null, message.getUser().getName()));
       }
     );
 
