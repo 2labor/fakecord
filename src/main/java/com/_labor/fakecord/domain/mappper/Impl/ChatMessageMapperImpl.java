@@ -37,7 +37,7 @@ public class ChatMessageMapperImpl implements ChatMessageMapper {
 
     UserDto userDto = null;
     if (null != message.getUser()) {
-      userDto = new UserDto(
+        userDto = new UserDto(
         message.getUser().getId(), 
         message.getUser().getName()
       );

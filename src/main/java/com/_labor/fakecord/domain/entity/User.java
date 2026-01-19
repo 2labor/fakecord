@@ -8,6 +8,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -24,15 +26,21 @@ public class User {
   @Column(name = "name", nullable = false)
   private String name;
 
+  @OneToOne
+  @JoinColumn(name = "account_id", nullable = false)
+  private Account account;
+
   @Column(name = "created", nullable = false)
   private LocalDateTime createdAt;
 
   @Column(name = "updated", nullable = false)
   private LocalDateTime updatedAt;
 
+
   public User(UUID id, String name) {
     this.id = id;
     this.name = name;
+    // this.account = account;
   }
 
   public User(){}
@@ -65,6 +73,14 @@ public class User {
   public void setName(String name) {
     this.name = name;
   }
+
+  public Account geAccount() {
+    return account;
+  }
+
+  public void setAccount(Account account) {
+    this.account = account;
+  } 
 
   public LocalDateTime getCreatedAt() {
     return createdAt;
