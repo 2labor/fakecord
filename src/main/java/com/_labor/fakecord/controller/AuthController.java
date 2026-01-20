@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.dto.AuthResponse;
+import com._labor.fakecord.domain.dto.LoginRequest;
 import com._labor.fakecord.domain.dto.RegisterRequest;
 import com._labor.fakecord.services.AuthService;
 
@@ -25,5 +26,10 @@ public class AuthController {
   @PostMapping("/register")
   public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
     return service.register(request);
+  }
+
+  @PostMapping("/login")
+  public AuthResponse login(@Valid @RequestBody LoginRequest request) {
+    return service.login(request);
   }
 }

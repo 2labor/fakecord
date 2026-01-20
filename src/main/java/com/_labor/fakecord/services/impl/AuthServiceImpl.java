@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.dto.AccountDto;
 import com._labor.fakecord.domain.dto.AuthResponse;
+import com._labor.fakecord.domain.dto.LoginRequest;
 import com._labor.fakecord.domain.dto.RegisterRequest;
 import com._labor.fakecord.domain.entity.Account;
 import com._labor.fakecord.domain.entity.User;
@@ -58,7 +59,27 @@ public class AuthServiceImpl implements AuthService {
 
     AccountDto accountDto = mapper.toDto(savedAccount);
 
-    return new AuthResponse(token, accountDto);
+    return AuthResponse.builder()
+      .token(token)
+      .accountDto(mapper.toDto(savedAccount))
+      .build();
   }
-  
+
+
+  @Override
+  public AuthResponse login(LoginRequest request) {
+    Account account = repository.findByLogin(request.login())
+      .orElseThrow(() -> new IllegalArgumentException("No account with such login: " + request.login()));
+
+    if (!passwordEncoder.matches(request.password(), account.getPassword())) {
+      throw new IllegalArgumentException("Wrong password or login!");
+    }
+
+    String token = jwtCore.generateToken(request.login());
+
+    return AuthResponse.builder() 
+      .token(token)
+      .accountDto(mapper.toDto(account))
+      .build();
+  }
 }
