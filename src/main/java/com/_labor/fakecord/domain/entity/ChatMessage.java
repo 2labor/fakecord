@@ -13,6 +13,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
@@ -40,14 +42,22 @@ public class ChatMessage {
   @Column(name = "updated", nullable = false)
   private LocalDateTime updatedAt;
 
-  public ChatMessage(UUID id, String content, MessageType type, User user, LocalDateTime createdAt,
-      LocalDateTime updatedAt) {
+  public ChatMessage(UUID id, String content, MessageType type, User user) {
     this.id = id;
     this.content = content;
     this.type = type;
     this.user = user;
-    this.createdAt = createdAt;
-    this.updatedAt = updatedAt;
+  }
+
+  @PrePersist
+  public void onCreate() {
+      this.createdAt = LocalDateTime.now();
+      this.updatedAt = LocalDateTime.now();
+  }
+
+  @PreUpdate
+  public void onUpdate() {
+      this.updatedAt = LocalDateTime.now();
   }
 
   public ChatMessage(){}
@@ -101,13 +111,18 @@ public class ChatMessage {
   }
 
   @Override
+  public String toString() {
+    return "ChatMessage [id=" + id + ", content=" + content + ", type=" + type + ", user=" + user + ", createdAt="
+        + createdAt + ", updatedAt=" + updatedAt + "]";
+  }
+
+  @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + ((id == null) ? 0 : id.hashCode());
     result = prime * result + ((content == null) ? 0 : content.hashCode());
     result = prime * result + ((type == null) ? 0 : type.hashCode());
-    result = prime * result + ((user == null) ? 0 : user.hashCode());
     result = prime * result + ((createdAt == null) ? 0 : createdAt.hashCode());
     result = prime * result + ((updatedAt == null) ? 0 : updatedAt.hashCode());
     return result;
@@ -134,11 +149,6 @@ public class ChatMessage {
       return false;
     if (type != other.type)
       return false;
-    if (user == null) {
-      if (other.user != null)
-        return false;
-    } else if (!user.equals(other.user))
-      return false;
     if (createdAt == null) {
       if (other.createdAt != null)
         return false;
@@ -150,12 +160,6 @@ public class ChatMessage {
     } else if (!updatedAt.equals(other.updatedAt))
       return false;
     return true;
-  }
-
-  @Override
-  public String toString() {
-    return "ChatMessage [id=" + id + ", content=" + content + ", type=" + type + ", user=" + user + ", createdAt="
-        + createdAt + ", updatedAt=" + updatedAt + "]";
   }
 
 }

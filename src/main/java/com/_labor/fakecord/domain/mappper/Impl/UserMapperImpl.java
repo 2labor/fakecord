@@ -11,18 +11,22 @@ public class UserMapperImpl implements UserMapper {
 
   @Override
   public User fromDto(UserDto dto) {
-    return new User(
-      dto.id(),
-      dto.name()
-    );
+    if (null == dto) return null;
+
+    User user = new User();
+    user.setId(dto.id());
+    user.setName(dto.name());
+
+    return user;
   }
 
   @Override
   public UserDto toDto(User user) {
+    if (user == null) return null;
+
     return new UserDto(
       user.getId(),
       user.getName()
     );
   }
-  
 }

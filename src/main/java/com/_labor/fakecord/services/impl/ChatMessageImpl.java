@@ -1,7 +1,5 @@
 package com._labor.fakecord.services.impl;
 
-import java.time.LocalDateTime;
-import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
@@ -29,54 +27,36 @@ public class ChatMessageImpl implements ChatMessageServices {
   } 
 
   @Override
+  @Transactional
   public ChatMessage createMessage(ChatMessage message) {
-    if (null != message.getId() || message.getContent().trim().isEmpty()) {
-      message.setType(MessageType.ERROR);
-      throw new IllegalArgumentException("Message have to have context");
+    if (null == message.getContent() || message.getContent().trim().isEmpty()) {
+      throw new IllegalArgumentException("Message cannot be empty!");
     }
 
-    if (null == message.getUser()) {
-      message.setType(MessageType.ERROR);
-      throw new IllegalArgumentException("Message have to have author!");
+    User author = userRepository.findByName(message.getUser().getName())
+      .orElseThrow(() -> new IllegalArgumentException("Author not found!"));
+
+    message.setUser(author);
+    if (message.getType() == null) {
+      message.setType(MessageType.SEND);
     }
 
-    User user = userRepository.findByName(message.getUser().getName())
-      .orElseGet(() -> {
-        return userRepository.save(new User(null, message.getUser().getName()));
-      }
-    );
-
-    LocalDateTime now = LocalDateTime.now();
-    return repository.save(new ChatMessage(
-      null,
-      message.getContent(), 
-      message.getType(), 
-      user,
-      now, 
-      now));
+    return repository.save(message);
   }
 
-  @Transactional
   @Override
+  @Transactional
   public ChatMessage updChatMessage(UUID chatMessageId, ChatMessage message) {
-    if (null == message.getId()) {
-      throw new IllegalArgumentException("Message don't have an id!");
-    }
+    ChatMessage existing = repository.findById(chatMessageId)
+      .orElseThrow(() -> new IllegalArgumentException("Message not found!"));
 
-    if (!Objects.equals(chatMessageId, message.getId())) {
-      throw new IllegalArgumentException("Attempt to change message id that is not present!");
-    }
+      if (message.getContent() != null && !message.getContent().trim().isEmpty()) {
+        existing.setContent(message.getContent());
+      } else {
+        throw new IllegalArgumentException("New content cannot be empty");
+      }
 
-    if (message.getContent().trim().isEmpty()) {
-      throw new IllegalArgumentException("Message don't have any content");
-    }
-
-    ChatMessage existingChatMessage = repository.findById(chatMessageId).orElseThrow(() -> new IllegalArgumentException("Message not found!"));
-
-    existingChatMessage.setContent(message.getContent());
-    existingChatMessage.setUpdatedAt(LocalDateTime.now());
-
-    return repository.save(existingChatMessage);
+      return repository.save(existing);
   }
 
   @Override

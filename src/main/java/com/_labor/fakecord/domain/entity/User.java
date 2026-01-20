@@ -36,11 +36,10 @@ public class User {
   @Column(name = "updated", nullable = false)
   private LocalDateTime updatedAt;
 
-
-  public User(UUID id, String name) {
+  public User(UUID id, String name, Account account) {
     this.id = id;
     this.name = name;
-    // this.account = account;
+    this.account = account;
   }
 
   public User(){}
@@ -74,7 +73,7 @@ public class User {
     this.name = name;
   }
 
-  public Account geAccount() {
+  public Account getAccount() {
     return account;
   }
 
@@ -99,16 +98,12 @@ public class User {
   }
 
   @Override
-  public String toString() {
-    return "User [id=" + id + ", name=" + name + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt + "]";
-  }
-
-  @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + ((id == null) ? 0 : id.hashCode());
     result = prime * result + ((name == null) ? 0 : name.hashCode());
+    result = prime * result + ((account == null) ? 0 : account.hashCode());
     result = prime * result + ((createdAt == null) ? 0 : createdAt.hashCode());
     result = prime * result + ((updatedAt == null) ? 0 : updatedAt.hashCode());
     return result;
@@ -133,6 +128,11 @@ public class User {
         return false;
     } else if (!name.equals(other.name))
       return false;
+    if (account == null) {
+      if (other.account != null)
+        return false;
+    } else if (!account.equals(other.account))
+      return false;
     if (createdAt == null) {
       if (other.createdAt != null)
         return false;
@@ -144,5 +144,11 @@ public class User {
     } else if (!updatedAt.equals(other.updatedAt))
       return false;
     return true;
+  }
+
+  @Override
+  public String toString() {
+    return "User [id=" + id + ", name=" + name + ", account=" + account + ", createdAt=" + createdAt + ", updatedAt="
+        + updatedAt + "]";
   }
 }

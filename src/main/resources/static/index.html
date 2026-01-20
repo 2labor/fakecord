@@ -7,208 +7,174 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
-        /* Modern Discord-inspired dark theme */
         body { font-family: 'Segoe UI', sans-serif; background-color: #36393f; color: #dcddde; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #2f3136; padding: 32px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); width: 400px; }
+        #chat-container { display: none; width: 900px; height: 85vh; flex-direction: column; }
         
-        #login-container, #chat-container { background: #2f3136; padding: 24px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); width: 400px; }
-        #chat-container { display: none; width: 700px; height: 75vh; flex-direction: column; }
+        h2 { text-align: center; color: white; margin-top: 0; }
+        label { display: block; margin-bottom: 8px; font-size: 0.75rem; font-weight: bold; color: #b9bbbe; text-transform: uppercase; }
+        input { background: #202225; border: 1px solid #202225; color: white; padding: 10px; border-radius: 3px; width: 100%; box-sizing: border-box; margin-bottom: 20px; outline: none; transition: border 0.2s; }
+        input:focus { border-color: #5865f2; }
         
-        #messages { flex-grow: 1; overflow-y: auto; margin-bottom: 15px; padding-right: 10px; display: flex; flex-direction: column; }
-        .msg { margin: 12px 0; border-left: 2px solid transparent; transition: 0.2s; }
-        .msg:hover { background: rgba(255,255,255,0.02); }
-        .msg-header { display: flex; align-items: baseline; gap: 10px; }
-        .username { color: #fff; font-weight: 600; font-size: 1rem; }
-        .timestamp { color: #72767d; font-size: 0.75rem; }
-        .msg-content { color: #dcddde; margin-top: 4px; line-height: 1.5; }
-        
-        .msg-join { color: #43b581; font-style: italic; text-align: center; font-size: 0.85rem; margin: 15px 0; }
-        
-        .input-area { display: flex; gap: 10px; position: relative; }
-        input { background: #40444b; border: none; color: white; padding: 12px; border-radius: 5px; width: 100%; outline: none; }
-        button { background: #5865f2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        button { background: #5865f2; color: white; border: none; padding: 12px; border-radius: 3px; cursor: pointer; font-weight: 500; width: 100%; font-size: 1rem; }
         button:hover { background: #4752c4; }
 
-        #error-overlay, #login-error { color: #f04747; background: rgba(240, 71, 71, 0.1); padding: 8px; border-radius: 4px; margin-bottom: 10px; display: none; text-align: center; font-size: 0.9rem; border: 1px solid #f04747; }
-
-        #messages::-webkit-scrollbar { width: 6px; }
-        #messages::-webkit-scrollbar-thumb { background: #202225; border-radius: 10px; }
+        #messages { flex-grow: 1; overflow-y: auto; background: #36393f; padding: 20px; margin-bottom: 15px; border-radius: 4px; display: flex; flex-direction: column; }
+        .msg { margin-bottom: 15px; padding: 5px; border-radius: 4px; }
+        .msg:hover { background: rgba(255,255,255,0.02); }
+        .username { color: #fff; font-weight: 600; margin-right: 8px; }
+        .timestamp { color: #72767d; font-size: 0.75rem; }
+        
+        .msg-join { color: #43b581; font-style: italic; text-align: center; font-size: 0.85rem; margin: 10px 0; }
+        
+        .error-box { color: #f04747; background: rgba(240, 71, 71, 0.1); padding: 10px; border-radius: 4px; margin-bottom: 20px; display: none; border: 1px solid #f04747; }
     </style>
 </head>
 <body>
 
-    <div id="login-container">
-        <h2 style="text-align: center; color: white;">Welcome back!</h2>
-        <p style="text-align: center; color: #b9bbbe;">Enter a username to start chatting</p>
-        <div id="login-error"></div>
-        <input type="text" id="name" placeholder="Username (3-24 chars)" maxlength="24">
-        <button id="joinBtn">Join Chat</button>
+    <div id="login-container" class="card">
+        <h2>Fakecord Account</h2>
+        <div id="login-error" class="error-box"></div>
+        <input type="email" id="reg-email" placeholder="Email">
+        <input type="text" id="reg-username" placeholder="Username">
+        <input type="text" id="reg-login" placeholder="Login ID">
+        <input type="password" id="reg-password" placeholder="Password">
+        <button id="joinBtn">Continue</button>
     </div>
 
-    <div id="chat-container">
-        <div id="error-overlay"></div>
+    <div id="chat-container" class="card">
         <div id="messages"></div>
-        <div class="input-area">
-            <input type="text" id="content" placeholder="Send a message to #global">
-            <button id="sendBtn">Send</button>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="content" placeholder="Message #global" style="margin-bottom: 0;">
+            <button id="sendBtn" style="width: 100px;">Send</button>
         </div>
     </div>
 
     <script>
         let stompClient = null;
-        let currentUser = null; // Store full UserDto {id, name}
-        let currentPage = 0;
-        let isLoading = false;
-        let allHistoryLoaded = false;
+        let currentUser = null; 
+        let jwtToken = null;
 
-        /**
-         * Step 1: Register user via REST API
-         */
-        async function handleJoin() {
-        const nameInput = document.getElementById('name');
-        const name = nameInput.value.trim();
+        async function handleRegister() {
+            const payload = {
+                email: document.getElementById('reg-email').value,
+                userName: document.getElementById('reg-username').value,
+                login: document.getElementById('reg-login').value,
+                password: document.getElementById('reg-password').value
+            };
 
-        try {
-            const response = await fetch('/api/users/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name })
-            });
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-            if (response.ok) {
-                currentUser = await response.json();
+                if (!response.ok) {
+                    const error = await response.text();
+                    document.getElementById('login-error').innerText = error;
+                    document.getElementById('login-error').style.display = 'block';
+                    return;
+                }
+
+                const data = await response.json();
+                jwtToken = data.token;
+                currentUser = data.accountDto.userDto;
+                
+                await loadHistory();
                 connectToWebSocket();
-            } else {
-                // Get the error message sent by GlobalExceptionHandler
-                const errorMsg = await response.text(); 
-                displayLoginError(errorMsg); // This will show "Username is taken" on the screen
-            }
-        } catch (err) {
-            displayLoginError("Server is unreachable");
-        }
-    }
 
-        /**
-         * Step 2: Connect to WebSocket after successful registration
-         */
+            } catch (err) {
+                console.error("Login Error:", err);
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/messages?page=0&limit=50', {
+                    headers: { 'Authorization': 'Bearer ' + jwtToken }
+                });
+                const messages = await response.json();
+                messages.reverse().forEach(msg => renderMessage(msg));
+            } catch (err) {
+                console.error("Failed to load history", err);
+            }
+        }
+
         function connectToWebSocket() {
             const socket = new SockJS('/ws-chat');
             stompClient = Stomp.over(socket);
             stompClient.debug = null;
 
-            stompClient.connect({}, () => {
+            const headers = { 'Authorization': 'Bearer ' + jwtToken };
+
+            stompClient.connect(headers, () => {
                 document.getElementById('login-container').style.display = 'none';
                 document.getElementById('chat-container').style.display = 'flex';
                 
-                loadHistory(true); 
-
-                // Sub to messages
                 stompClient.subscribe('/topic/public', (payload) => {
-                    renderMessage(JSON.parse(payload.body), false);
+                    renderMessage(JSON.parse(payload.body));
                 });
 
-                // Sub to socket-level errors
-                stompClient.subscribe('/user/topic/errors', (error) => {
-                    displayOverlayError(error.body);
-                });
+                sendJoinMessage();
 
-                send('JOIN');
             }, (error) => {
-                console.error("Socket error:", error);
-                displayLoginError("WebSocket connection failed");
-                document.getElementById('login-container').style.display = 'flex';
-                document.getElementById('chat-container').style.display = 'none';
+                console.error("STOMP Error:", error);
             });
         }
 
-        function loadHistory(isInitialLoad = false) {
-            if (isLoading || allHistoryLoaded) return;
-            isLoading = true;
-            const container = document.getElementById('messages');
-            const oldHeight = container.scrollHeight;
-
-            fetch(`/api/messages?page=${currentPage}&size=20`)
-                .then(res => res.json())
-                .then(messages => {
-                    if (messages.length < 20) allHistoryLoaded = true;
-                    if (messages.length > 0) {
-                        messages.forEach(msg => renderMessage(msg, true));
-                        currentPage++;
-                        container.scrollTop = isInitialLoad ? container.scrollHeight : container.scrollHeight - oldHeight;
-                    }
-                    isLoading = false;
-                });
+        function sendJoinMessage() {
+            const joinMsg = {
+                content: `${currentUser.name} joined to chat`,
+                type: 'JOIN',
+                userDto: currentUser
+            };
+            stompClient.send("/app/chat.send", {}, JSON.stringify(joinMsg));
         }
 
-        function send(type) {
+        function sendMessage() {
             const input = document.getElementById('content');
-            const val = input.value.trim();
-            if (type === 'MESSAGE' && !val) return;
+            const text = input.value.trim();
+            if (!text || !stompClient) return;
 
-            const messagePayload = {
-                content: type === 'JOIN' ? `${currentUser.name} joined the chat!` : val,
-                type: type,
-                userDto: currentUser // Send the object received from REST
+            const chatMessageDto = {
+                content: text,
+                type: 'SEND',
+                userDto: currentUser
             };
 
-            stompClient.send("/app/chat.send", {}, JSON.stringify(messagePayload));
+            stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessageDto));
             input.value = '';
         }
 
-        function renderMessage(msg, prepend = false) {
+        function renderMessage(msg) {
             const container = document.getElementById('messages');
-            const el = document.createElement('div');
+            const div = document.createElement('div');
             
-            let timeStr = "Just now";
-            if (msg.timestamp) {
-                const d = Array.isArray(msg.timestamp) 
-                    ? new Date(msg.timestamp[0], msg.timestamp[1]-1, msg.timestamp[2], msg.timestamp[3], msg.timestamp[4])
-                    : new Date(msg.timestamp);
-                timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            }
-
             if (msg.type === 'JOIN') {
-                el.className = 'msg-join';
-                el.textContent = msg.content;
+                div.className = 'msg-join';
+                div.innerText = msg.content;
             } else {
-                el.className = 'msg';
-                const sender = msg.userDto?.name || "System";
-                el.innerHTML = `
-                    <div class="msg-header">
+                div.className = 'msg';
+                const sender = msg.userDto ? msg.userDto.name : 'System';
+                const time = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                div.innerHTML = `
+                    <div>
                         <span class="username">${sender}</span>
-                        <span class="timestamp">${timeStr}</span>
+                        <span class="timestamp">${time}</span>
                     </div>
-                    <div class="msg-content">${msg.content}</div>
+                    <div style="color: #dcddde; margin-top: 4px;">${msg.content}</div>
                 `;
             }
 
-            if (prepend) container.prepend(el);
-            else {
-                container.appendChild(el);
-                container.scrollTop = container.scrollHeight;
-            }
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
         }
 
-        function displayLoginError(message) {
-            const errDiv = document.getElementById('login-error');
-            errDiv.innerText = message;
-            errDiv.style.display = 'block';
-        }
-
-        function displayOverlayError(message) {
-            const overlay = document.getElementById('error-overlay');
-            overlay.innerText = message;
-            overlay.style.display = 'block';
-            setTimeout(() => { overlay.style.display = 'none'; }, 5000);
-        }
-
-        // Listeners
-        document.getElementById('joinBtn').onclick = handleJoin;
-        document.getElementById('sendBtn').onclick = () => send('MESSAGE');
-        document.getElementById('messages').onscroll = function() {
-            if (this.scrollTop < 5) loadHistory(false);
-        };
-        document.getElementById('content').onkeypress = (e) => { if(e.key === 'Enter') send('MESSAGE'); };
-        document.getElementById('name').onkeypress = (e) => { if(e.key === 'Enter') handleJoin(); };
+        document.getElementById('joinBtn').onclick = handleRegister;
+        document.getElementById('sendBtn').onclick = sendMessage;
+        document.getElementById('content').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
     </script>
 </body>
 </html>
