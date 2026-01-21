@@ -24,6 +24,9 @@ public class JwtCore {
   @Value("${fakecord.jwt.lifetime}")
   private int lifetime;
 
+  @Value("${fakecord.jwt.refreshExpirationMs}")
+  private long refreshTokenDurationMs;
+
   private SecretKey getSigningKey() {
     return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
   }
@@ -50,7 +53,7 @@ public class JwtCore {
     Cookie[] cookies = request.getCookies();
     if (cookies != null) {
       for (Cookie cookie : cookies) {
-        if ("jwt-chat-token".equals(cookie.getName())){
+        if ("access-token".equals(cookie.getName())){
           return cookie.getValue();
         }
       }
@@ -71,20 +74,38 @@ public class JwtCore {
     }
   }
 
-  public ResponseCookie createCookie(String token) {
-    return ResponseCookie.from("jwt-chat-token", token)
+  public ResponseCookie createAccessTokenCookie(String token) {
+    return ResponseCookie.from("access-token", token)
       .httpOnly(true)
       .secure(false)
       .path("/")
-      .maxAge(lifetime / 1000)
+      .maxAge(3600)
       .sameSite("Lax")
       .build();
   }
 
-  public ResponseCookie deleteJwtCookie() {
-    return ResponseCookie.from("jwt-chat-token", "")
+  public ResponseCookie createRefreshTokenCookie(String refreshToken) {
+    return ResponseCookie.from("refresh-token", refreshToken)
+      .httpOnly(true)
+      .secure(false)
+      .path("/")
+      .maxAge(refreshTokenDurationMs / 1000)
+      .sameSite("Lax")
+      .build();
+  }
+
+  public ResponseCookie deleteAccessTokenCookie() {
+    return ResponseCookie.from("access-token", "")
       .httpOnly(true)
       .path("/")
+      .maxAge(0)
+      .build();
+  }
+
+  public ResponseCookie deleteRefreshTokenCookie() {
+    return ResponseCookie.from("refresh-token", "")
+      .httpOnly(true)
+      .path("/api/auth/refresh")
       .maxAge(0)
       .build();
   }

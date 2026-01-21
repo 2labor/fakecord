@@ -1,4 +1,6 @@
 package com._labor.fakecord.controller;
+import java.security.Principal;
+
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Controller;
 
 import com._labor.fakecord.domain.dto.ChatMessageDto;
 import com._labor.fakecord.domain.entity.ChatMessage;
+import com._labor.fakecord.domain.entity.MessageType;
 import com._labor.fakecord.domain.mappper.ChatMessageMapper;
 import com._labor.fakecord.services.ChatMessageServices;
 
@@ -30,9 +33,11 @@ public class ChatController {
   public ChatMessageDto sendMessage(@Payload @Valid ChatMessageDto dto) {
     ChatMessage message = chatMapper.fromDto(dto);
 
-    ChatMessage savedMessage = service.createMessage(message);
+    if (message.getType() == MessageType.SEND) {
+        message = service.createMessage(message); 
+    }
 
-    return chatMapper.toDto(savedMessage);
+    return chatMapper.toDto(message);
   }
 
   @MessageExceptionHandler(MethodArgumentNotValidException.class)

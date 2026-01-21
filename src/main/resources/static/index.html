@@ -13,24 +13,30 @@
             --danger: #f04747; --success: #43b581;
         }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-dark); color: var(--text-main); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+        
+        /* Auth Card */
         .card { background: var(--bg-card); padding: 32px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); width: 400px; }
         .tabs { display: flex; gap: 20px; margin-bottom: 20px; border-bottom: 1px solid #4f545c; }
         .tab { cursor: pointer; color: var(--text-muted); font-weight: bold; text-transform: uppercase; font-size: 0.8rem; padding-bottom: 10px; }
         .tab.active { color: #fff; border-bottom: 2px solid var(--discord-blue); }
-        label { font-size: 0.7rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; display: block; }
+        
         input { background: var(--bg-input); border: 1px solid var(--bg-input); color: white; padding: 12px; border-radius: 3px; width: 100%; box-sizing: border-box; margin-bottom: 15px; outline: none; transition: 0.2s; }
         input:focus { border-color: var(--discord-blue); }
         button { background: var(--discord-blue); color: white; border: none; padding: 12px; border-radius: 3px; cursor: pointer; width: 100%; font-size: 1rem; font-weight: 500; }
         button:hover { background: #4752c4; }
-        
+
+        /* Chat Layout */
         #chat-container { display: none; width: 1000px; height: 90vh; flex-direction: column; background: var(--bg-card); border-radius: 8px; overflow: hidden; }
-        #messages { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; }
+        #messages { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; scroll-behavior: auto; }
+        
         .msg { margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
         .username { color: #fff; font-weight: 600; margin-right: 8px; }
         .timestamp { color: var(--text-muted); font-size: 0.75rem; }
-        .msg-join { color: var(--success); font-style: italic; text-align: center; margin: 10px 0; font-size: 0.85rem; }
-        .loading-marker { text-align: center; padding: 10px; color: var(--text-muted); font-size: 0.8rem; }
+        
+        .msg-join { align-self: center; background: rgba(67, 181, 129, 0.1); color: var(--success); padding: 4px 15px; border-radius: 20px; font-size: 0.8rem; margin: 10px 0; font-style: italic; }
+        
         .error-box { color: var(--danger); background: rgba(240, 71, 71, 0.1); padding: 10px; border-radius: 4px; margin-bottom: 15px; display: none; border: 1px solid var(--danger); font-size: 0.85rem; }
+        #loading-indicator { text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 10px; }
     </style>
 </head>
 <body>
@@ -42,31 +48,23 @@
         </div>
         <div id="auth-error" class="error-box"></div>
         
-        <label>Login ID</label>
-        <input type="text" id="input-login" placeholder="Enter your login">
+        <input type="text" id="input-login" placeholder="Login ID">
+        <input type="password" id="input-password" placeholder="Password">
         
-        <label>Password</label>
-        <input type="password" id="input-password" placeholder="••••••••">
-
         <div id="reg-only" style="display: none;">
-            <label>Confirm Password</label>
-            <input type="password" id="input-confirm" placeholder="••••••••">
-            
-            <label>Email</label>
-            <input type="email" id="input-email" placeholder="email@example.com">
-            
-            <label>Display Name</label>
-            <input type="text" id="input-username" placeholder="How others see you">
+            <input type="password" id="input-confirm" placeholder="Confirm Password">
+            <input type="email" id="input-email" placeholder="Email (email@example.com)">
+            <input type="text" id="input-username" placeholder="Display Name">
         </div>
         
-        <button id="mainBtn" onclick="handleAuth()">Continue</button>
+        <button id="auth-btn" onclick="handleAuth()">Continue</button>
     </div>
 
     <div id="chat-container">
         <div id="messages">
-            <div id="load-more" class="loading-marker">Loading history...</div>
+            <div id="loading-indicator">Welcome to the beginning of the chat</div>
         </div>
-        <div style="padding: 20px; background: var(--bg-card); display: flex; gap: 10px;">
+        <div style="padding: 20px; background: var(--bg-card); display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05);">
             <input type="text" id="msg-input" placeholder="Message #global" style="margin-bottom: 0;">
             <button onclick="sendMessage()" style="width: 100px;">Send</button>
             <button onclick="logout()" style="width: 80px; background: var(--danger);">Exit</button>
@@ -76,33 +74,44 @@
     <script>
         let currentUser = null;
         let stompClient = null;
+        let isRefreshing = false;
+        let refreshTimer = null;
+        
+        // Pagination state
         let currentPage = 0;
         let isHistoryLoading = false;
         let allHistoryLoaded = false;
 
-        // CHECK SESSION ON LOAD
-        window.onload = async () => {
-            try {
-                const res = await fetch('/api/auth/me');
-                if (res.ok) {
-                    const data = await res.json();
-                    initApp(data.userDto);
-                }
-            } catch (e) { console.log("Not authenticated"); }
-        };
+        // --- 1. AUTHORIZED FETCH ---
+        async function authorizedFetch(url, options = {}) {
+            let res = await fetch(url, options);
+            if (res.status === 401 && !isRefreshing && url !== '/api/auth/refresh') {
+                isRefreshing = true;
+                try {
+                    const refreshRes = await fetch('/api/auth/refresh', { method: 'POST' });
+                    if (refreshRes.ok) {
+                        const data = await refreshRes.json();
+                        currentUser = data.userDto || data;
+                        isRefreshing = false;
+                        if (stompClient) stompClient.disconnect(() => connectWebSocket());
+                        return await fetch(url, options);
+                    }
+                } catch (e) { console.error("Session expired"); }
+                isRefreshing = false;
+            }
+            return res;
+        }
 
+        // --- 2. AUTH LOGIC ---
         async function handleAuth() {
             hideError();
+            const mode = document.getElementById('tab-login').classList.contains('active') ? 'login' : 'reg';
             const login = document.getElementById('input-login').value;
             const password = document.getElementById('input-password').value;
-            const mode = document.getElementById('tab-login').classList.contains('active') ? 'login' : 'reg';
-            
+
             if (mode === 'reg') {
                 const confirm = document.getElementById('input-confirm').value;
-                if (password !== confirm) {
-                    showError("Passwords do not match!");
-                    return;
-                }
+                if (password !== confirm) return showError("Passwords do not match!");
             }
 
             const payload = { login, password };
@@ -113,38 +122,41 @@
 
             try {
                 const res = await fetch(mode === 'login' ? '/api/auth/login' : '/api/auth/register', {
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'},
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
                 });
-
                 if (res.ok) {
                     const data = await res.json();
-                    initApp(data.userDto);
+                    initApp(data.userDto || data);
                 } else {
-                    const err = await res.text();
-                    showError(err || "Authentication failed");
+                    showError(await res.text() || "Authentication failed");
                 }
             } catch (e) { showError("Server unreachable"); }
         }
 
+        // --- 3. CHAT INITIALIZATION ---
         function initApp(user) {
             currentUser = user;
             document.getElementById('auth-container').style.display = 'none';
             document.getElementById('chat-container').style.display = 'flex';
             
-            loadHistory(); 
+            loadHistory(true); 
             connectWebSocket();
             
+            // Start Pulse
+            if (refreshTimer) clearInterval(refreshTimer);
+            refreshTimer = setInterval(() => authorizedFetch('/api/auth/me'), 45000);
+
+            // Infinite Scroll Listener
             const msgBox = document.getElementById('messages');
             msgBox.addEventListener('scroll', () => {
                 if (msgBox.scrollTop === 0 && !isHistoryLoading && !allHistoryLoaded) {
-                    loadHistory();
+                    loadHistory(false);
                 }
             });
         }
 
-        async function loadHistory() {
+        async function loadHistory(isInitial = false) {
             if (isHistoryLoading || allHistoryLoaded) return;
             isHistoryLoading = true;
             
@@ -152,44 +164,56 @@
             const oldHeight = msgBox.scrollHeight;
 
             try {
-                const res = await fetch(`/api/messages?page=${currentPage}&limit=20`);
-                const messages = await res.json();
+                const res = await authorizedFetch(`/api/messages?page=${currentPage}&limit=20`);
+                if (res.ok) {
+                    const messages = await res.json();
+                    if (messages.length < 20) {
+                        allHistoryLoaded = true;
+                        document.getElementById('loading-indicator').innerText = "This is the start of the conversation.";
+                    }
+                    
+                    // Render older messages at the top
+                    messages.forEach(msg => renderMessage(msg, true));
+                    currentPage++;
 
-                if (messages.length < 20) allHistoryLoaded = true;
-
-                // Backend returns DESC (newest first), we prepend them to the top
-                messages.forEach(msg => renderMessage(msg, true));
-                
-                currentPage++;
-                msgBox.scrollTop = msgBox.scrollHeight - oldHeight;
-            } catch (e) { console.error("History error", e); }
-            
+                    // Adjust scroll position
+                    if (isInitial) msgBox.scrollTop = msgBox.scrollHeight;
+                    else msgBox.scrollTop = msgBox.scrollHeight - oldHeight;
+                }
+            } catch (e) { console.error(e); }
             isHistoryLoading = false;
-            if (allHistoryLoaded) document.getElementById('load-more').innerText = "Beginning of message history";
         }
 
+        // --- 4. WEBSOCKET ---
         function connectWebSocket() {
             const socket = new SockJS('/ws-chat');
             stompClient = Stomp.over(socket);
+            stompClient.heartbeat.outgoing = 10000;
+            stompClient.heartbeat.incoming = 10000;
             stompClient.debug = null;
+            
             stompClient.connect({}, () => {
                 stompClient.subscribe('/topic/public', (p) => renderMessage(JSON.parse(p.body), false));
                 
-                // SEND JOIN NOTIFICATION
-                stompClient.send("/app/chat.send", {}, JSON.stringify({
-                    content: `${currentUser.name} joined the chat!`,
+                // JOIN Message
+                const joinMsg = {
                     type: 'JOIN',
-                    userDto: currentUser
-                }));
+                    content: `${currentUser.name || currentUser.login} joined the room`,
+                    userDto: { id: currentUser.id, login: currentUser.login, name: currentUser.name || currentUser.userName || currentUser.login }
+                };
+                stompClient.send("/app/chat.send", {}, JSON.stringify(joinMsg));
             });
         }
 
         function sendMessage() {
             const input = document.getElementById('msg-input');
             if (input.value.trim() && stompClient) {
-                stompClient.send("/app/chat.send", {}, JSON.stringify({
-                    content: input.value, type: 'SEND', userDto: currentUser
-                }));
+                const msg = {
+                    content: input.value,
+                    type: 'SEND',
+                    userDto: { id: currentUser.id, login: currentUser.login, name: currentUser.name || currentUser.userName || currentUser.login }
+                };
+                stompClient.send("/app/chat.send", {}, JSON.stringify(msg));
                 input.value = '';
             }
         }
@@ -203,13 +227,16 @@
                 div.innerText = msg.content;
             } else {
                 div.className = 'msg';
-                const time = new Date(msg.createdAt || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                div.innerHTML = `<div><span class="username">${msg.userDto?.name || 'System'}</span><span class="timestamp">${time}</span></div>
+                const date = msg.createdAt || msg.timestamp || Date.now();
+                const time = new Date(date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                const name = msg.userDto?.name || msg.userDto?.userName || 'User';
+                
+                div.innerHTML = `<div><span class="username">${name}</span><span class="timestamp">${time}</span></div>
                                  <div style="margin-top:4px;">${msg.content}</div>`;
             }
 
             if (prepend) {
-                const loader = document.getElementById('load-more');
+                const loader = document.getElementById('loading-indicator');
                 loader.after(div);
             } else {
                 container.appendChild(div);
@@ -217,26 +244,25 @@
             }
         }
 
-        function logout() {
-            fetch('/api/auth/logout', {method: 'POST'}).then(() => window.location.reload());
-        }
-
+        // --- UI HELPERS ---
         function switchMode(m) {
             document.getElementById('tab-login').className = m === 'login' ? 'tab active' : 'tab';
             document.getElementById('tab-reg').className = m === 'reg' ? 'tab active' : 'tab';
             document.getElementById('reg-only').style.display = m === 'reg' ? 'block' : 'none';
             hideError();
         }
-
-        function showError(m) {
-            const errBox = document.getElementById('auth-error');
-            errBox.innerText = m;
-            errBox.style.display = 'block';
-        }
-
+        function showError(m) { const e = document.getElementById('auth-error'); e.innerText = m; e.style.display = 'block'; }
         function hideError() { document.getElementById('auth-error').style.display = 'none'; }
-        
+        function logout() { fetch('/api/auth/logout', {method: 'POST'}).then(() => window.location.reload()); }
         document.getElementById('msg-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
+        
+        // Check session on load
+        window.onload = async () => {
+            try {
+                const res = await authorizedFetch('/api/auth/me');
+                if (res.ok) initApp(await res.json());
+            } catch(e){}
+        };
     </script>
 </body>
 </html>
