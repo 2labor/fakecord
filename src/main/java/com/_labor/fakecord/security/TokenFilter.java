@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import com._labor.fakecord.controller.AuthController;
@@ -18,31 +19,32 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class TokenFilter extends OncePerRequestFilter {
 
-    private final AuthController authController;
   private final JwtCore jwtCore;
   private final UserDetailsService userDetailsService;
 
   public TokenFilter(JwtCore jwtCore, UserDetailsService userDetailsService, AuthController authController) {
     this.jwtCore = jwtCore;
     this.userDetailsService = userDetailsService;
-    this.authController = authController;
   }
 
   @Override
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-    String authHeader = request.getHeader("Authorization");
-    String username = null;
-    String jwt = null;
+    try {
+      String jwt = jwtCore.getJwtFromCookies(request);
 
-    if (null != authHeader && authHeader.startsWith("Bearer ")) {
-      jwt = authHeader.substring(7);
-      username = jwtCore.extractUsername(jwt);
-    }
-    
-    if (null != username && SecurityContextHolder.getContext().getAuthentication() == null) {
-      UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-      UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-      SecurityContextHolder.getContext().setAuthentication(auth); 
+      if (null != jwt && jwtCore.validateToken(jwt)) {
+        String username = jwtCore.extractUsername(jwt);
+
+        UserDetails details = userDetailsService.loadUserByUsername(username);
+
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
+
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+      }
+    } catch (Exception e) {
+      logger.error("Cannot set user authentication: {}", e);
     }
 
     filterChain.doFilter(request, response);

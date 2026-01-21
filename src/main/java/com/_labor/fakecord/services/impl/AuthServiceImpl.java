@@ -61,7 +61,7 @@ public class AuthServiceImpl implements AuthService {
 
     return AuthResponse.builder()
       .token(token)
-      .accountDto(mapper.toDto(savedAccount))
+      .accountDto(accountDto)
       .build();
   }
 
