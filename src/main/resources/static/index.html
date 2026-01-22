@@ -25,6 +25,54 @@
         button { background: var(--discord-blue); color: white; border: none; padding: 12px; border-radius: 3px; cursor: pointer; width: 100%; font-size: 1rem; font-weight: 500; }
         button:hover { background: #4752c4; }
 
+       /* Minimalist Dark Google Button */
+        .google-btn {
+            background: #4f545c;
+            color: #dcddde;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            border: none;
+            padding: 10px;
+            border-radius: 3px;
+            transition: 0.2s;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .google-btn:hover {
+            background: #5d6269;
+        }
+
+        .google-btn img {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        .separator {
+            display: flex;
+            align-items: center;
+            margin: 18px 0;
+        }
+
+        .separator::before, .separator::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #4f545c;
+        }
+
+        .separator span {
+            padding: 0 10px;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
         /* Chat Layout */
         #chat-container { display: none; width: 1000px; height: 90vh; flex-direction: column; background: var(--bg-card); border-radius: 8px; overflow: hidden; }
         #messages { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; scroll-behavior: auto; }
@@ -58,6 +106,13 @@
         </div>
         
         <button id="auth-btn" onclick="handleAuth()">Continue</button>
+
+        <div class="separator"><span>OR</span></div>
+
+        <button class="google-btn" onclick="loginWithGoogle()">
+            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="18" height="18">
+            Sign in with Google
+        </button>
     </div>
 
     <div id="chat-container">
@@ -77,10 +132,14 @@
         let isRefreshing = false;
         let refreshTimer = null;
         
-        // Pagination state
         let currentPage = 0;
         let isHistoryLoading = false;
         let allHistoryLoaded = false;
+
+        // --- GOOGLE AUTH REDIRECT ---
+        function loginWithGoogle() {
+            window.location.href = '/oauth2/authorization/google';
+        }
 
         // --- 1. AUTHORIZED FETCH ---
         async function authorizedFetch(url, options = {}) {
@@ -143,11 +202,9 @@
             loadHistory(true); 
             connectWebSocket();
             
-            // Start Pulse
             if (refreshTimer) clearInterval(refreshTimer);
             refreshTimer = setInterval(() => authorizedFetch('/api/auth/me'), 45000);
 
-            // Infinite Scroll Listener
             const msgBox = document.getElementById('messages');
             msgBox.addEventListener('scroll', () => {
                 if (msgBox.scrollTop === 0 && !isHistoryLoading && !allHistoryLoaded) {
@@ -172,11 +229,9 @@
                         document.getElementById('loading-indicator').innerText = "This is the start of the conversation.";
                     }
                     
-                    // Render older messages at the top
                     messages.forEach(msg => renderMessage(msg, true));
                     currentPage++;
 
-                    // Adjust scroll position
                     if (isInitial) msgBox.scrollTop = msgBox.scrollHeight;
                     else msgBox.scrollTop = msgBox.scrollHeight - oldHeight;
                 }
@@ -195,7 +250,6 @@
             stompClient.connect({}, () => {
                 stompClient.subscribe('/topic/public', (p) => renderMessage(JSON.parse(p.body), false));
                 
-                // JOIN Message
                 const joinMsg = {
                     type: 'JOIN',
                     content: `${currentUser.name || currentUser.login} joined the room`,
@@ -256,7 +310,6 @@
         function logout() { fetch('/api/auth/logout', {method: 'POST'}).then(() => window.location.reload()); }
         document.getElementById('msg-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
         
-        // Check session on load
         window.onload = async () => {
             try {
                 const res = await authorizedFetch('/api/auth/me');
