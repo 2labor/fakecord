@@ -3,13 +3,12 @@ package com._labor.fakecord.controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com._labor.fakecord.domain.dto.AccountDto;
 import com._labor.fakecord.domain.dto.AuthResponse;
 import com._labor.fakecord.domain.dto.LoginRequest;
 import com._labor.fakecord.domain.dto.RegisterRequest;
 import com._labor.fakecord.domain.entity.RefreshToken;
-import com._labor.fakecord.domain.mappper.AccountMapper;
-import com._labor.fakecord.repository.AccountRepository;
+import com._labor.fakecord.domain.mappper.UserMapper;
+import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.security.JwtCore;
 import com._labor.fakecord.services.AuthService;
 import com._labor.fakecord.services.RefreshTokenService;
@@ -17,6 +16,8 @@ import com._labor.fakecord.services.RefreshTokenService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+
+import java.util.UUID;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -34,31 +35,31 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RequestMapping("api/auth")
 public class AuthController {
 
-  private final AccountMapper accountMapper;
+  private final UserMapper userMapper;
   private final AuthService service;
   private final JwtCore jwtCore;
-  private final AccountRepository repository;
+  private final UserRepository userRepository;
   private final RefreshTokenService refreshTokenService;
 
-  public AuthController(AuthService service, JwtCore jwtCore, AccountMapper accountMapper, AccountRepository repository, RefreshTokenService refreshTokenService) {
+  public AuthController(AuthService service, JwtCore jwtCore, UserMapper userMapper, UserRepository repository, RefreshTokenService refreshTokenService) {
     this.service = service;
     this.jwtCore = jwtCore;
-    this.accountMapper = accountMapper;
-    this.repository = repository;
+    this.userMapper = userMapper;
+    this.userRepository = repository;
     this.refreshTokenService = refreshTokenService; 
   }
 
   private ResponseEntity<?> generateAuthResponse(AuthResponse response) {
     ResponseCookie accessCookie = jwtCore.createAccessTokenCookie(response.token());
 
-    RefreshToken refreshToken = refreshTokenService.createRefreshToken(response.accountDto().id());
+    RefreshToken refreshToken = refreshTokenService.createRefreshToken(response.userDto().id());
 
     ResponseCookie refreshCookie = jwtCore.createRefreshTokenCookie(refreshToken.getToken());
 
     return ResponseEntity.ok()
       .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
       .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-      .body(response.accountDto());
+      .body(response.userDto());
   }
 
   @PostMapping("/register")
@@ -79,8 +80,8 @@ public class AuthController {
   public ResponseEntity<?> logout() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     if (auth != null && !(auth instanceof AnonymousAuthenticationToken)) {
-      repository.findByLogin(auth.getName())
-        .ifPresent(account -> refreshTokenService.deleteByAccount(account));
+      UUID userId = UUID.fromString(auth.getName());
+      refreshTokenService.deleteByUserId(userId);
     }
     
     ResponseCookie deleteAccessCookie = jwtCore.deleteAccessTokenCookie();
@@ -111,16 +112,14 @@ public class AuthController {
     return refreshTokenService.findByToken(token)
       .map(refreshTokenService::verifyExpiration)
       .map(rt -> {
-        String newAccessToken = jwtCore.generateToken(rt.getAccount().getLogin());
+        String newAccessToken = jwtCore.generateToken(rt.getUser().getId());
         ResponseCookie accessCookie = jwtCore.createAccessTokenCookie(newAccessToken);
         ResponseCookie refreshCookie = jwtCore.createRefreshTokenCookie(rt.getToken());
-
-        AccountDto dto = accountMapper.toDto(rt.getAccount());
 
         return ResponseEntity.ok()
           .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
           .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-          .body(dto);
+          .body(userMapper.toDto(rt.getUser()));
         }).orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
   }
   
@@ -134,14 +133,10 @@ public class AuthController {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
     }
 
-    String login = authentication.getName();
- 
-    return repository.findByLogin(login)
-      .map(account -> {
-          AccountDto dto = accountMapper.toDto(account);
-          return ResponseEntity.ok(dto);
-      })
-      .map(ResponseEntity.class::cast)
-      .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account not found!"));
+    UUID userId = UUID.fromString(authentication.getName());
+    
+    return userRepository.findById(userId)
+      .<ResponseEntity<?>>map(user -> ResponseEntity.ok(userMapper.toDto(user)))
+      .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found!"));
   }
 }

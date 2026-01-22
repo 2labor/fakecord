@@ -2,6 +2,7 @@ package com._labor.fakecord.security;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
@@ -31,16 +32,16 @@ public class JwtCore {
     return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
   }
 
-  public String generateToken(String login) {
+  public String generateToken(UUID userId) {
     return Jwts.builder()
-      .setSubject(login) // set login as a subject
+      .setSubject(userId.toString()) // set user id as a subject
       .setIssuedAt(new Date()) // date of creation
       .setExpiration(new Date(System.currentTimeMillis() + lifetime)) // date of expiring
       .signWith(getSigningKey(),SignatureAlgorithm.HS256) // sign up key
       .compact(); // build final string
   } 
 
-  public String extractUsername(String token) {
+  public String extractUserId(String token) {
     return Jwts.parserBuilder()
       .setSigningKey(getSigningKey())
       .build()

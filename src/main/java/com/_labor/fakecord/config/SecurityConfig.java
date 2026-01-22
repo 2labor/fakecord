@@ -1,6 +1,7 @@
 package com._labor.fakecord.config;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +21,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com._labor.fakecord.repository.AccountRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.security.TokenFilter;
 
@@ -28,11 +28,11 @@ import com._labor.fakecord.security.TokenFilter;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final UserRepository userRepository;
+  private final UserRepository userRepository;
 
-    SecurityConfig(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+  public SecurityConfig(UserRepository userRepository) {
+    this.userRepository = userRepository;
+  }
 
   //password encoder
   @Bean
@@ -68,15 +68,15 @@ public class SecurityConfig {
   } 
 
   @Bean
-  public UserDetailsService userDetailsService(AccountRepository repository) {
-    return username -> repository.findByLogin(username)
-      .map(account -> User
-        .withUsername(account.getLogin())
-        .password(account.getPassword())
+  public UserDetailsService userDetailsService(UserRepository repository) {
+    return id -> repository.findById(UUID.fromString(id))
+      .map(user -> User
+        .withUsername(user.getId().toString())
+        .password("")
         .authorities("ROLE_USER")
         .build()
       )
-      .orElseThrow(() -> new UsernameNotFoundException("User name: " + username));
+      .orElseThrow(() -> new UsernameNotFoundException("User name: " + id));
   }
 
   @Bean

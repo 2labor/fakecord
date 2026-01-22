@@ -9,6 +9,7 @@ import com._labor.fakecord.domain.entity.Account;
 
 public interface AccountRepository extends JpaRepository<Account, UUID> {
   Optional<Account> findByLogin(String login);
+  Optional<Account> findByEmail(String email);
   boolean existsByLogin(String login);
   boolean existsByEmail(String email);
 }

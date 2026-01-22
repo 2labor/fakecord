@@ -9,9 +9,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.PostPersist;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
@@ -28,10 +29,11 @@ public class Account {
   @Column(name = "email", nullable = false, unique = true)
   private String email;
 
-  @Column(name = "password", nullable = false)
+  @Column(name = "password", nullable = true)
   private String password;
 
-  @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
+  @OneToOne(cascade = CascadeType.ALL)
+  @JoinColumn(name = "user_id", referencedColumnName = "id")
   private User user;
 
   @Column(name = "created_at")
@@ -61,9 +63,9 @@ public class Account {
 
     this.createdAt = now;
     this.updatedAt = now;
-  } 
+  }
 
-  @PostPersist
+  @PreUpdate
   public void onUpdate() {
     this.updatedAt = LocalDateTime.now();
   }
@@ -113,8 +115,8 @@ public class Account {
 
   @Override
   public String toString() {
-    return "Account [id=" + id + ", login=" + login + ", email=" + email + ", password=" + password + ", user=" + user
-        + "]";
+    return "Account [id=" + id + ", login=" + login + ", email=" + email + ", password=" + password + ", createdAt="
+        + createdAt + ", updatedAt=" + updatedAt + "]";
   }
 
   @Override
@@ -125,7 +127,8 @@ public class Account {
     result = prime * result + ((login == null) ? 0 : login.hashCode());
     result = prime * result + ((email == null) ? 0 : email.hashCode());
     result = prime * result + ((password == null) ? 0 : password.hashCode());
-    result = prime * result + ((user == null) ? 0 : user.hashCode());
+    result = prime * result + ((createdAt == null) ? 0 : createdAt.hashCode());
+    result = prime * result + ((updatedAt == null) ? 0 : updatedAt.hashCode());
     return result;
   }
 
@@ -158,11 +161,17 @@ public class Account {
         return false;
     } else if (!password.equals(other.password))
       return false;
-    if (user == null) {
-      if (other.user != null)
+    if (createdAt == null) {
+      if (other.createdAt != null)
         return false;
-    } else if (!user.equals(other.user))
+    } else if (!createdAt.equals(other.createdAt))
+      return false;
+    if (updatedAt == null) {
+      if (other.updatedAt != null)
+        return false;
+    } else if (!updatedAt.equals(other.updatedAt))
       return false;
     return true;
   }
+
 }

@@ -14,7 +14,7 @@ import jakarta.persistence.PrePersist;
 import lombok.Builder;
 
 @Entity
-@Table(name = "refresh_token")
+@Table(name = "refresh_tokens")
 @Builder
 public class RefreshToken {
   @Id
@@ -26,8 +26,8 @@ public class RefreshToken {
   private String token;
 
   @OneToOne
-  @JoinColumn(name = "account_id", referencedColumnName = "id")
-  private Account account;
+  @JoinColumn(name = "user_id", referencedColumnName = "id")
+  private User user;
 
   @Column(name = "expiry_date", nullable = false)
   private Instant expiryDate;
@@ -35,27 +35,20 @@ public class RefreshToken {
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 
-  public RefreshToken(long id, String token, Account account, Instant expiryDate, Instant createdAt) {
+  public RefreshToken(long id, String token, User user, Instant expiryDate, Instant createdAt) {
     this.id = id;
     this.token = token;
-    this.account = account;
+    this.user = user;
     this.expiryDate = expiryDate;
     this.createdAt = createdAt;
+  }
+
+  public RefreshToken() {
   }
 
   @PrePersist
   public void onCreate() {
     this.createdAt = Instant.now();
-  }
-
-  public RefreshToken(long id, String token, Account account, Instant expiryDate) {
-    this.id = id;
-    this.token = token;
-    this.account = account;
-    this.expiryDate = expiryDate;
-  }
-
-  public RefreshToken() {
   }
 
   public long getId() {
@@ -74,12 +67,12 @@ public class RefreshToken {
     this.token = token;
   }
 
-  public Account getAccount() {
-    return account;
+  public User getUser() {
+    return user;
   }
 
-  public void setAccount(Account account) {
-    this.account = account;
+  public void setUser(User user) {
+    this.user = user;
   }
 
   public Instant getExpiryDate() {
@@ -96,6 +89,12 @@ public class RefreshToken {
 
   public void setCreatedAt(Instant createdAt) {
     this.createdAt = createdAt;
+  }
+
+  @Override
+  public String toString() {
+    return "RefreshToken [id=" + id + ", token=" + token + ", expiryDate=" + expiryDate + ", createdAt=" + createdAt
+        + "]";
   }
 
   @Override
@@ -137,12 +136,4 @@ public class RefreshToken {
       return false;
     return true;
   }
-
-  @Override
-  public String toString() {
-    return "RefreshToken [id=" + id + ", token=" + token + ", account=" + account + ", expiryDate=" + expiryDate
-        + ", createdAt=" + createdAt + "]";
-  }
-
-  
 }

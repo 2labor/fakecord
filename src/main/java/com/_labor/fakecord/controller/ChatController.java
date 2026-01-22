@@ -1,5 +1,4 @@
 package com._labor.fakecord.controller;
-import java.security.Principal;
 
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;

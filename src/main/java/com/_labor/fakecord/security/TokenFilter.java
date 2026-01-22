@@ -8,7 +8,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import com._labor.fakecord.controller.AuthController;
 import com._labor.fakecord.services.UserDetailsService;
 
 import jakarta.servlet.FilterChain;
@@ -22,7 +21,7 @@ public class TokenFilter extends OncePerRequestFilter {
   private final JwtCore jwtCore;
   private final UserDetailsService userDetailsService;
 
-  public TokenFilter(JwtCore jwtCore, UserDetailsService userDetailsService, AuthController authController) {
+  public TokenFilter(JwtCore jwtCore, UserDetailsService userDetailsService) {
     this.jwtCore = jwtCore;
     this.userDetailsService = userDetailsService;
   }
@@ -33,9 +32,9 @@ public class TokenFilter extends OncePerRequestFilter {
       String jwt = jwtCore.getJwtFromCookies(request);
 
       if (null != jwt && jwtCore.validateToken(jwt)) {
-        String username = jwtCore.extractUsername(jwt);
+        String userId = jwtCore.extractUserId(jwt);
 
-        UserDetails details = userDetailsService.loadUserByUsername(username);
+        UserDetails details = userDetailsService.loadUserByUserId(userId);
 
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
 
@@ -44,7 +43,7 @@ public class TokenFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(authentication);
       }
     } catch (Exception e) {
-      logger.error("Cannot set user authentication: {}", e);
+      System.out.println("Cannot set user authentication: {}" + e.getMessage());
     }
 
     filterChain.doFilter(request, response);

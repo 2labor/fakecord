@@ -1,14 +1,17 @@
 package com._labor.fakecord.domain.entity;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -26,12 +29,14 @@ public class User {
   @Column(name = "name", nullable = false)
   private String name;
 
-  @OneToOne
-  @JoinColumn(name = "account_id", nullable = false)
+  @OneToOne(mappedBy = "user")
   private Account account;
 
   @Column(name = "created", nullable = false)
   private LocalDateTime createdAt;
+
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<SocialAccount> socialAccounts = new ArrayList<>();
 
   @Column(name = "updated", nullable = false)
   private LocalDateTime updatedAt;
@@ -103,8 +108,8 @@ public class User {
     int result = 1;
     result = prime * result + ((id == null) ? 0 : id.hashCode());
     result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + ((account == null) ? 0 : account.hashCode());
     result = prime * result + ((createdAt == null) ? 0 : createdAt.hashCode());
+    result = prime * result + ((socialAccounts == null) ? 0 : socialAccounts.hashCode());
     result = prime * result + ((updatedAt == null) ? 0 : updatedAt.hashCode());
     return result;
   }
@@ -128,15 +133,15 @@ public class User {
         return false;
     } else if (!name.equals(other.name))
       return false;
-    if (account == null) {
-      if (other.account != null)
-        return false;
-    } else if (!account.equals(other.account))
-      return false;
     if (createdAt == null) {
       if (other.createdAt != null)
         return false;
     } else if (!createdAt.equals(other.createdAt))
+      return false;
+    if (socialAccounts == null) {
+      if (other.socialAccounts != null)
+        return false;
+    } else if (!socialAccounts.equals(other.socialAccounts))
       return false;
     if (updatedAt == null) {
       if (other.updatedAt != null)
@@ -148,7 +153,8 @@ public class User {
 
   @Override
   public String toString() {
-    return "User [id=" + id + ", name=" + name + ", account=" + account + ", createdAt=" + createdAt + ", updatedAt="
-        + updatedAt + "]";
+    return "User [id=" + id + ", name=" + name + ", createdAt=" + createdAt + ", socialAccounts=" + socialAccounts
+        + ", updatedAt=" + updatedAt + "]";
   }
+
 }

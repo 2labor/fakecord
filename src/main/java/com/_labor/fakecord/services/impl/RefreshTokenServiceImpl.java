@@ -7,11 +7,10 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com._labor.fakecord.domain.entity.Account;
 import com._labor.fakecord.domain.entity.RefreshToken;
-import com._labor.fakecord.repository.AccountRepository;
+import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.repository.RefreshTokenRepository;
-import com._labor.fakecord.security.TokenFilter;
+import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.RefreshTokenService;
 
 import jakarta.transaction.Transactional;
@@ -24,23 +23,23 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
   private long refreshTokenDurationMs;
 
   private final RefreshTokenRepository repository;
-  private final AccountRepository accountRepository;
+  private final UserRepository userRepository;
 
-  public RefreshTokenServiceImpl(RefreshTokenRepository repository, AccountRepository accountRepository) {
+  public RefreshTokenServiceImpl(RefreshTokenRepository repository, UserRepository userRepository) {
     this.repository = repository;
-    this.accountRepository = accountRepository;
+    this.userRepository = userRepository;
   }
 
   @Transactional
   @Override
-  public RefreshToken createRefreshToken(UUID accountId) {
-    Account account = accountRepository.findById(accountId)
-      .orElseThrow(() -> new IllegalArgumentException("Account not found!"));
+  public RefreshToken createRefreshToken(UUID userId) {
+    User user = userRepository.findById(userId)
+      .orElseThrow(() -> new IllegalArgumentException("User not found!"));
 
-    deleteByAccount(account);
+    deleteByUserId(userId);
 
     RefreshToken refreshToken = RefreshToken.builder()
-      .account(account)
+      .user(user)
       .token(UUID.randomUUID().toString())
       .expiryDate(Instant.now().plusMillis(refreshTokenDurationMs))
       .build();
@@ -50,8 +49,8 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
   @Transactional
   @Override
-  public void deleteByAccount(Account account) {
-    repository.deleteByAccount(account);
+  public void deleteByUserId(UUID userId) {
+    repository.deleteByUserId(userId);
   }
 
   @Override
