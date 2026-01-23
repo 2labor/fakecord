@@ -5,18 +5,27 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.dto.AuthResponse;
 import com._labor.fakecord.domain.dto.LoginRequest;
+import com._labor.fakecord.domain.dto.MfaRegistrationResponse;
+import com._labor.fakecord.domain.dto.MfaSetupRequest;
 import com._labor.fakecord.domain.dto.RegisterRequest;
+import com._labor.fakecord.domain.dto.VerificationRequest;
+import com._labor.fakecord.domain.entity.AuthMethodType;
 import com._labor.fakecord.domain.entity.RefreshToken;
+import com._labor.fakecord.domain.entity.User;
+import com._labor.fakecord.domain.entity.UserAuthenticator;
 import com._labor.fakecord.domain.mappper.UserMapper;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.security.JwtCore;
 import com._labor.fakecord.services.AuthService;
 import com._labor.fakecord.services.RefreshTokenService;
+import com._labor.fakecord.services.UserAuthenticatorService;
+import com._labor.fakecord.utils.RequestUtil;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpHeaders;
@@ -25,6 +34,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,13 +50,22 @@ public class AuthController {
   private final JwtCore jwtCore;
   private final UserRepository userRepository;
   private final RefreshTokenService refreshTokenService;
+  private final UserAuthenticatorService userAuthenticatorService;
 
-  public AuthController(AuthService service, JwtCore jwtCore, UserMapper userMapper, UserRepository repository, RefreshTokenService refreshTokenService) {
+  public AuthController(
+    AuthService service, 
+    JwtCore jwtCore, 
+    UserMapper userMapper, 
+    UserRepository repository, 
+    RefreshTokenService refreshTokenService,
+    UserAuthenticatorService userAuthenticatorService
+  ) {
     this.service = service;
     this.jwtCore = jwtCore;
     this.userMapper = userMapper;
     this.userRepository = repository;
     this.refreshTokenService = refreshTokenService; 
+    this.userAuthenticatorService = userAuthenticatorService;
   }
 
   private ResponseEntity<?> generateAuthResponse(AuthResponse response) {
@@ -70,10 +89,27 @@ public class AuthController {
   }
 
   @PostMapping("/login")
-  public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-    AuthResponse response = service.login(request);
+  public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+    String ip = RequestUtil.getClientIp(httpRequest);
+    String agent = RequestUtil.getClientAgent(httpRequest);
 
-    return generateAuthResponse(response);
+    AuthResponse authResponse = service.login(request, ip, agent);
+
+    if (authResponse.mfaRequired()) {
+      return ResponseEntity.ok(authResponse);
+    }
+
+    return generateAuthResponse(authResponse);
+  }
+
+  @PostMapping("/verify")
+  public ResponseEntity<?> verify(@Valid @RequestBody VerificationRequest request, HttpServletRequest httpRequest) {  
+    String ip = RequestUtil.getClientIp(httpRequest);
+    String agent = RequestUtil.getClientAgent(httpRequest);
+
+    AuthResponse authResponse = service.verify(request, ip, agent);
+
+    return generateAuthResponse(authResponse);
   }
 
   @PostMapping("/logout")
@@ -138,5 +174,78 @@ public class AuthController {
     return userRepository.findById(userId)
       .<ResponseEntity<?>>map(user -> ResponseEntity.ok(userMapper.toDto(user)))
       .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found!"));
+  }
+
+  @GetMapping("/mfa/status")
+public ResponseEntity<?> getMfaStatus() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+    // Проверка на аутентификацию
+    if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
+    }
+
+    try {
+        UUID userId = UUID.fromString(auth.getName());
+        
+        List<AuthMethodType> activeTypes = userAuthenticatorService.getActiveMethods(userId)
+                .stream()
+                .map(UserAuthenticator::getType)
+                .toList();
+
+        return ResponseEntity.ok(activeTypes);
+    } catch (Exception e) {
+        e.printStackTrace(); 
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+    }
+}
+
+  @GetMapping("/mfa/setup")
+  public ResponseEntity<MfaRegistrationResponse> setupMfa() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    UUID userId = UUID.fromString(auth.getName());
+    User user = userRepository.findById(userId)
+      .orElseThrow(() -> new IllegalArgumentException("User not found!"));
+    
+    MfaRegistrationResponse response = userAuthenticatorService.initiateMfaSetup(user);
+
+    return ResponseEntity.ok(response);
+  }
+
+  @PostMapping("/mfa/enable")
+  public ResponseEntity<String> enableMfa(@Valid @RequestBody MfaSetupRequest setupRequest) {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    UUID userId = UUID.fromString(auth.getName());
+    User user = userRepository.findById(userId)
+      .orElseThrow(() -> new IllegalArgumentException("User not found!"));
+    
+    boolean isValid = userAuthenticatorService.verifyTotp(setupRequest.secret(), setupRequest.code());
+    
+    if (!isValid) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid verification code. Try again.");
+    }
+  
+    userAuthenticatorService.enableMethod(user, AuthMethodType.TOTP, setupRequest.secret());
+
+    return ResponseEntity.ok("MFA enabled successfully!");
+  }
+
+  @PostMapping("/mfa/disable")
+  public ResponseEntity<String> disableMfa(@Valid @RequestBody VerificationRequest request) {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    UUID userId = UUID.fromString(auth.getName());
+    
+    boolean isValid = userAuthenticatorService.verifyCode(
+        userRepository.findById(userId).get(), 
+        AuthMethodType.TOTP, 
+        request.code()
+    );
+
+    if (!isValid) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid code");
+    }
+
+    userAuthenticatorService.disableMethod(userId, AuthMethodType.TOTP);
+    return ResponseEntity.ok("MFA disabled");
   }
 }

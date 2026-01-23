@@ -69,11 +69,13 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return userRepository.save(newUser);
       });
 
-    SocialAccount socialAccount = new SocialAccount();
-    socialAccount.setUser(user);
-    socialAccount.setProvider(provider);
-    socialAccount.setProviderId(providerId);
-    socialAccountRepository.save(socialAccount);
+    if (socialAccountRepository.findByUserAndProvider(user, provider).isEmpty()) {
+      SocialAccount socialAccount = new SocialAccount();
+      socialAccount.setUser(user);
+      socialAccount.setProvider(provider);
+      socialAccount.setProviderId(providerId);
+      socialAccountRepository.save(socialAccount);
+    }
 
     return user;
   }

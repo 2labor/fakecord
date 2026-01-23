@@ -38,6 +38,8 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     deleteByUserId(userId);
 
+    repository.flush();
+
     RefreshToken refreshToken = RefreshToken.builder()
       .user(user)
       .token(UUID.randomUUID().toString())

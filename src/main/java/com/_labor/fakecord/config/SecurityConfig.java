@@ -1,5 +1,6 @@
 package com._labor.fakecord.config;
 
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -48,6 +49,11 @@ public class SecurityConfig {
   }
 
   @Bean
+  public SecureRandom secureRandom() {
+    return new SecureRandom();
+  }
+
+  @Bean
   public SecurityFilterChain filterChain(HttpSecurity http, TokenFilter tokenFilter) throws Exception {
     http
         .csrf(AbstractHttpConfigurer::disable)
@@ -56,6 +62,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/", "/index.html", "/static/**", "/*.js", "/*.css").permitAll()
             .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
+            .requestMatchers("/mfa-verify", "/api/auth/mfa/verify-totp").permitAll() 
             .requestMatchers("/api/auth/**", "/login/**", "/oauth2/**").permitAll()
             .anyRequest().authenticated())
         .oauth2Login(oauth2 -> oauth2

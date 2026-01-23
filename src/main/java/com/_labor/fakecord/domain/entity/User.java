@@ -23,7 +23,7 @@ public class User {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
-  @Column(name = "id",  updatable = false, nullable = false)
+  @Column(name = "id", updatable = false, nullable = false)
   private UUID id;
 
   @Column(name = "name", nullable = false)
@@ -47,7 +47,8 @@ public class User {
     this.account = account;
   }
 
-  public User(){}
+  public User() {
+  }
 
   @PrePersist
   public void onCreate() {
@@ -84,7 +85,7 @@ public class User {
 
   public void setAccount(Account account) {
     this.account = account;
-  } 
+  }
 
   public LocalDateTime getCreatedAt() {
     return createdAt;
