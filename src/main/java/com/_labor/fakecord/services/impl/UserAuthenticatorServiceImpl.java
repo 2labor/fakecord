@@ -58,14 +58,7 @@ public class UserAuthenticatorServiceImpl implements UserAuthenticatorService{
   public boolean verifyTotp(String secret, String code) {
     try {
       int codeInt = Integer.parseInt(code);
-      boolean result =  gAuth.authorize(secret, codeInt);
-
-      if (!result) {
-        System.out.println("DEBUG: Ожидаемый код: " + gAuth.getTotpPassword(secret));
-        System.out.println("DEBUG: Введенный код: " + code);
-      }
-
-      return result;
+      return gAuth.authorize(secret, codeInt);
     } catch (NumberFormatException e) {
       return false;
     }
@@ -74,7 +67,12 @@ public class UserAuthenticatorServiceImpl implements UserAuthenticatorService{
   @Override
   @Transactional
   public void enableMethod(User user, AuthMethodType type, String secretCode) {
-    repository.deleteByUserIdAndType(user.getId(), type);
+    List<UserAuthenticator> oldMethods = repository.findAllByUserIdAndIsActiveTrue(user.getId());
+
+    oldMethods.stream()
+      .filter(a -> a.getType() == type)
+      .map(UserAuthenticator::getId)
+      .forEach(repository::deleteById);
 
     String encryptSecret = encryptionUtil.encrypt(secretCode);
     UserAuthenticator authenticator = UserAuthenticator.builder()

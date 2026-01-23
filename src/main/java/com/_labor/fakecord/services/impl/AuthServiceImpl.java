@@ -137,6 +137,7 @@ public class AuthServiceImpl implements AuthService {
     boolean isValid = userAuthenticatorService.verifyCode(user, request.authType(), request.code());
 
     if (!isValid) {
+      verificationTokenService.recordFailedAttempt(request.tokenId());
       throw new IllegalArgumentException("Invalid verify code!");
     }
 

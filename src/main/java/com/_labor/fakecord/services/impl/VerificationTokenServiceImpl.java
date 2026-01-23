@@ -85,8 +85,22 @@ public class VerificationTokenServiceImpl implements VerificationTokenService {
         if (type == TokenType.MFA_SESSION) {
             return true; 
         }
-        
+
         return true; 
       });
   } 
+
+  @Override
+  @Transactional
+  public void recordFailedAttempt(String tokenId) {
+    repository.findById(UUID.fromString(tokenId)).ifPresent(token -> {
+      token.incrementAttempts();
+      if (token.getAttempts() >= mfaMaxAttempts) {
+        repository.delete(token);
+      } else {
+        repository.save(token);
+      }
+    });
+  }
+
 }
