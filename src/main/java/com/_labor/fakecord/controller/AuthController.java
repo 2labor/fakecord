@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.dto.AuthResponse;
 import com._labor.fakecord.domain.dto.LoginRequest;
+import com._labor.fakecord.domain.dto.MfaEnableResponse;
 import com._labor.fakecord.domain.dto.MfaRegistrationResponse;
 import com._labor.fakecord.domain.dto.MfaSetupRequest;
 import com._labor.fakecord.domain.dto.RegisterRequest;
@@ -17,6 +18,7 @@ import com._labor.fakecord.domain.mappper.UserMapper;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.security.JwtCore;
 import com._labor.fakecord.services.AuthService;
+import com._labor.fakecord.services.BackupCodeService;
 import com._labor.fakecord.services.RefreshTokenService;
 import com._labor.fakecord.services.UserAuthenticatorService;
 import com._labor.fakecord.utils.RequestUtil;
@@ -51,6 +53,7 @@ public class AuthController {
   private final UserRepository userRepository;
   private final RefreshTokenService refreshTokenService;
   private final UserAuthenticatorService userAuthenticatorService;
+  private final BackupCodeService backupCodeService;
 
   public AuthController(
     AuthService service, 
@@ -58,7 +61,8 @@ public class AuthController {
     UserMapper userMapper, 
     UserRepository repository, 
     RefreshTokenService refreshTokenService,
-    UserAuthenticatorService userAuthenticatorService
+    UserAuthenticatorService userAuthenticatorService,
+    BackupCodeService backupCodeService
   ) {
     this.service = service;
     this.jwtCore = jwtCore;
@@ -66,6 +70,7 @@ public class AuthController {
     this.userRepository = repository;
     this.refreshTokenService = refreshTokenService; 
     this.userAuthenticatorService = userAuthenticatorService;
+    this.backupCodeService = backupCodeService;
   }
 
   private ResponseEntity<?> generateAuthResponse(AuthResponse response) {
@@ -180,7 +185,6 @@ public class AuthController {
 public ResponseEntity<?> getMfaStatus() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-    // Проверка на аутентификацию
     if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
     }
@@ -213,7 +217,7 @@ public ResponseEntity<?> getMfaStatus() {
   }
 
   @PostMapping("/mfa/enable")
-  public ResponseEntity<String> enableMfa(@Valid @RequestBody MfaSetupRequest setupRequest) {
+  public ResponseEntity<?> enableMfa(@Valid @RequestBody MfaSetupRequest setupRequest, HttpServletRequest httpRequest) {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     UUID userId = UUID.fromString(auth.getName());
     User user = userRepository.findById(userId)
@@ -227,7 +231,12 @@ public ResponseEntity<?> getMfaStatus() {
   
     userAuthenticatorService.enableMethod(user, AuthMethodType.TOTP, setupRequest.secret());
 
-    return ResponseEntity.ok("MFA enabled successfully!");
+    List<String> backupCodes = backupCodeService.generateNewCodes(user, httpRequest);
+
+    return ResponseEntity.ok(new MfaEnableResponse(
+        "MFA enabled successfully!",
+        backupCodes
+    ));
   }
 
   @PostMapping("/mfa/disable")
