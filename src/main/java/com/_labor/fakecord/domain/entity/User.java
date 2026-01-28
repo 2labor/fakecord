@@ -95,6 +95,14 @@ public class User {
     this.createdAt = createdAt;
   }
 
+  public List<SocialAccount> getSocialAccounts() {
+    return socialAccounts;
+  }
+
+  public void setSocialAccounts(List<SocialAccount> socialAccounts) {
+    this.socialAccounts = socialAccounts;
+  }
+
   public LocalDateTime getUpdatedAt() {
     return updatedAt;
   }
@@ -157,5 +165,4 @@ public class User {
     return "User [id=" + id + ", name=" + name + ", createdAt=" + createdAt + ", socialAccounts=" + socialAccounts
         + ", updatedAt=" + updatedAt + "]";
   }
-
 }

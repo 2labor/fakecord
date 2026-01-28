@@ -69,10 +69,13 @@ public class VerificationTokenServiceImpl implements VerificationTokenService {
 
   @Override
   @Transactional
-  public Optional<VerificationToken> verifyToken(String tokenId, TokenType type, String currentIp, String currentAgent) {
-    return repository.findById(UUID.fromString(tokenId))
-      .filter(token -> token.getType() == type)
-      .filter(token -> {
+  public Optional<VerificationToken> verifyToken(String identifier, TokenType type, String currentIp, String currentAgent) {
+
+    Optional<VerificationToken> tokenOpt = (type == TokenType.MFA_SESSION)
+        ? repository.findById(UUID.fromString(identifier))
+        : repository.findByTokenAndType(identifier, type);
+
+    return tokenOpt.filter(token -> {
         if (token.isExpired() || token.getAttempts() >= mfaMaxAttempts) {
           repository.delete(token);
           return false;
@@ -101,6 +104,17 @@ public class VerificationTokenServiceImpl implements VerificationTokenService {
         repository.save(token);
       }
     });
+  }
+
+ @Transactional
+  public void deleteTokenSafe(UUID tokenId, TokenType expectedType) {
+      repository.findById(tokenId).ifPresent(token -> {
+          if (token.getType() == expectedType) {
+              repository.delete(token);
+          } else {
+              throw new SecurityException("Attempt to delete wrong token type!");
+          }
+      });
   }
 
 }

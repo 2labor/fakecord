@@ -14,4 +14,5 @@ import com._labor.fakecord.domain.entity.User;
 public interface SocialAccountRepository extends JpaRepository<SocialAccount, UUID> {
   Optional<SocialAccount> findByProviderAndProviderId(AuthProvider provider, String providerId);
   Optional<SocialAccount> findByUserAndProvider(User user, AuthProvider provider);
+  Optional<SocialAccount> findByEmail(String email);
 }

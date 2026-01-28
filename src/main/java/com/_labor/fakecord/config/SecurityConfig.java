@@ -65,6 +65,7 @@ public class SecurityConfig {
             .requestMatchers("/mfa-verify", "/api/auth/mfa/verify-totp").permitAll() 
             .requestMatchers("/api/auth/verify", "/api/auth/mfa/backup/verify").permitAll()
             .requestMatchers("/api/auth/**", "/login/**", "/oauth2/**").permitAll()
+            .requestMatchers("/auth/reset").permitAll()
             .anyRequest().authenticated())
         .oauth2Login(oauth2 -> oauth2
             .loginPage("/")

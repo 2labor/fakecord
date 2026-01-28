@@ -74,6 +74,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
       socialAccount.setUser(user);
       socialAccount.setProvider(provider);
       socialAccount.setProviderId(providerId);
+      socialAccount.setEmail(email); 
       socialAccountRepository.save(socialAccount);
     }
 

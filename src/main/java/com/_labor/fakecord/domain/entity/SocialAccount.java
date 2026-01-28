@@ -36,6 +36,9 @@ public class SocialAccount {
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
+  @Column(name = "email", nullable = false)
+  private String email;
+
   @Column(name = "provider_id", nullable = false)
   private String providerId;
 
@@ -45,10 +48,11 @@ public class SocialAccount {
   @Column(name = "updated_at", nullable = false)
   private Instant updatedAt;
 
-  public SocialAccount(UUID id, AuthProvider provider, User user, String providerId) {
+  public SocialAccount(UUID id, AuthProvider provider, User user, String email, String providerId) {
     this.id = id;
     this.provider = provider;
     this.user = user;
+    this.email = email;
     this.providerId = providerId;
   }
 
@@ -89,6 +93,14 @@ public class SocialAccount {
 
   public void setUser(User user) {
     this.user = user;
+  }
+
+  public String getEmail() {
+    return email;
+  }
+
+  public void setEmail(String email) {
+    this.email = email;
   }
 
   public String getProviderId() {

@@ -15,7 +15,7 @@
         }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg-dark); color: var(--text-main); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
         
-        .card { background: var(--bg-card); padding: 32px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); width: 400px; }
+        .card { background: var(--bg-card); padding: 32px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); width: 400px; display: none; }
         .tabs { display: flex; gap: 20px; margin-bottom: 20px; border-bottom: 1px solid #4f545c; }
         .tab { cursor: pointer; color: var(--text-muted); font-weight: bold; text-transform: uppercase; font-size: 0.8rem; padding-bottom: 10px; }
         .tab.active { color: #fff; border-bottom: 2px solid var(--discord-blue); }
@@ -44,7 +44,7 @@
         #qrcode { background: white; padding: 10px; display: inline-flex; justify-content: center; align-items: center; margin: 15px 0; border-radius: 4px; min-width: 160px; min-height: 160px; }
         
         .backup-codes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: var(--bg-input); padding: 15px; border-radius: 4px; margin: 15px 0; font-family: monospace; color: var(--success); }
-        .link-alt { color: var(--discord-blue); font-size: 0.8rem; cursor: pointer; text-decoration: underline; margin-top: 10px; display: block; }
+        .link-alt { color: var(--discord-blue); font-size: 0.8rem; cursor: pointer; text-decoration: underline; margin-top: 10px; display: block; text-align: center; }
     </style>
 </head>
 <body>
@@ -58,14 +58,16 @@
             <div id="auth-error" class="error-box"></div>
             
             <div id="auth-inputs">
-                <input type="text" id="input-login" placeholder="Login ID">
+                <input type="text" id="input-login" placeholder="Username">
                 <input type="password" id="input-password" placeholder="Password">
                 <div id="reg-only" style="display: none;">
                     <input type="password" id="input-confirm" placeholder="Confirm Password">
                     <input type="email" id="input-email" placeholder="Email">
-                    <input type="text" id="input-username" placeholder="Display Name">
+                    <input type="text" id="input-username" placeholder="Display Name (3-24 characters)">
                 </div>
                 <button id="auth-btn" onclick="handleAuth()">Continue</button>
+                <a class="link-alt" onclick="showForgotPasswordForm()">Forgot your password?</a>
+                
                 <div id="google-section">
                     <div class="separator"><span>OR</span></div>
                     <button class="google-btn" onclick="window.location.href='/oauth2/authorization/google'">
@@ -75,13 +77,28 @@
             </div>
         </div>
 
+        <div id="password-forgot-view" style="display: none;">
+            <h2 style="text-align: center; margin-top: 0;">Forgot Password</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">Enter your email to receive a reset link.</p>
+            <div id="forgot-error" class="error-box"></div>
+            <input type="email" id="reset-email" placeholder="Email">
+            <button onclick="submitResetRequest()">Send Link</button>
+            <a class="link-alt" onclick="location.reload()">Back to login</a>
+        </div>
+
+        <div id="password-reset-confirm-view" style="display: none;">
+            <h2 style="text-align: center; margin-top: 0;">New Password</h2>
+            <div id="reset-confirm-error" class="error-box"></div>
+            <input type="password" id="new-password-input" placeholder="New Password">
+            <input type="password" id="confirm-new-password-input" placeholder="Confirm New Password">
+            <button onclick="submitNewPassword()">Update Password</button>
+        </div>
+
         <div id="mfa-challenge-view" style="display: none; text-align: center;">
             <h2 id="mfa-title">2FA Check</h2>
             <p id="mfa-desc" style="color: var(--text-muted); font-size: 0.85rem;">Enter the 6-digit code from your app.</p>
             <div id="mfa-error" class="error-box"></div>
-            
-            <input type="text" id="input-mfa-code" placeholder="000000" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 5px;">
-            
+            <input type="text" id="input-mfa-code" placeholder="000000" maxlength="8" style="text-align: center; font-size: 1.5rem; letter-spacing: 5px;">
             <button onclick="submitMfaVerify()">Verify</button>
             <a id="mfa-alt-link" class="link-alt" onclick="toggleMfaMode()">Lost access? Use backup code</a>
             <a class="link-alt" style="color: var(--text-muted); margin-top: 20px;" onclick="location.reload()">← Back to login</a>
@@ -127,12 +144,18 @@
         let allHistoryLoaded = false;
         let tempMfaSecret = null;
 
-        // --- INITIALIZATION ---
-
         window.onload = async () => {
             const params = new URLSearchParams(window.location.search);
             const mfaRequired = params.get('mfaRequired');
             const sessionId = params.get('sessionId');
+            const resetToken = params.get('token');
+
+            if (resetToken) {
+                document.getElementById('auth-container').style.display = 'block';
+                document.getElementById('auth-main-view').style.display = 'none';
+                document.getElementById('password-reset-confirm-view').style.display = 'block';
+                return; 
+            }
 
             if (mfaRequired === 'true' && sessionId) {
                 currentSessionId = sessionId;
@@ -154,47 +177,98 @@
             }
         };
 
-        function showAuthForm() {
-            document.getElementById('auth-container').style.display = 'block';
-            document.getElementById('chat-container').style.display = 'none';
-        }
-
-        function showMfaChallengeView() {
-            document.getElementById('auth-main-view').style.display = 'none';
-            document.getElementById('mfa-challenge-view').style.display = 'block';
-            document.getElementById('auth-container').style.display = 'block';
-        }
-
-        // --- AUTH & MFA ---
+        // --- AUTH & RESET ---
 
         async function handleAuth() {
             hideError();
             const mode = document.getElementById('tab-login').classList.contains('active') ? 'login' : 'reg';
-            const payload = {
-                login: document.getElementById('input-login').value,
-                password: document.getElementById('input-password').value
-            };
+            
+            const loginValue = document.getElementById('input-login').value;
+            const passwordValue = document.getElementById('input-password').value;
 
-            if (mode === 'reg') {
-                if (payload.password !== document.getElementById('input-confirm').value) return showError("Passwords mismatch");
-                payload.email = document.getElementById('input-email').value;
-                payload.userName = document.getElementById('input-username').value;
+            let payload = {};
+            let endpoint = '';
+
+            if (mode === 'login') {
+                endpoint = '/api/auth/login';
+                payload = {
+                    login: loginValue,
+                    password: passwordValue
+                };
+            } else {
+                endpoint = '/api/auth/register';
+                const confirmPassword = document.getElementById('input-confirm').value;
+                
+                if (passwordValue !== confirmPassword) {
+                    return showError("Passwords mismatch");
+                }
+
+                payload = {
+                    login: loginValue,
+                    email: document.getElementById('input-email').value,
+                    password: passwordValue,
+                    userName: document.getElementById('input-username').value
+                };
             }
 
             try {
-                const res = await fetch(mode === 'login' ? '/api/auth/login' : '/api/auth/register', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+
                 const data = await res.json();
+
                 if (res.ok) {
                     if (data.mfaRequired) {
                         currentSessionId = data.sessionId;
                         showMfaChallengeView();
-                    } else { initApp(data.userDto || data); }
-                } else { showError(data.message || "Authentication failed"); }
-            } catch (e) { showError("Server connection error"); }
+                    } else { 
+                        initApp(data.userDto || data); 
+                    }
+                } else {
+                    showError(data.message || "Authentication failed. Check your data.");
+                }
+            } catch (e) {
+                showError("Server connection error");
+            }
         }
+
+        function showForgotPasswordForm() {
+            document.getElementById('auth-main-view').style.display = 'none';
+            document.getElementById('password-forgot-view').style.display = 'block';
+        }
+
+        async function submitResetRequest() {
+            const email = document.getElementById('reset-email').value;
+            try {
+                const res = await fetch('/api/auth/password/reset-request', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email })
+                });
+                if (res.ok) { alert("If email exists, link sent!"); location.reload(); }
+                else alert("Request failed");
+            } catch (e) { alert("Error"); }
+        }
+
+        async function submitNewPassword() {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            const newPassword = document.getElementById('new-password-input').value;
+            if (newPassword !== document.getElementById('confirm-new-password-input').value) return alert("Mismatch");
+
+            try {
+                const res = await fetch('/api/auth/password/reset-confirm', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ token, newPassword })
+                });
+                if (res.ok) { alert("Success! Log in now."); window.location.href='/'; }
+                else alert("Invalid or expired token");
+            } catch (e) { alert("Error"); }
+        }
+
+        // --- MFA VERIFY ---
 
         async function submitMfaVerify() {
             const code = document.getElementById('input-mfa-code').value;
@@ -206,9 +280,7 @@
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
-                        code, 
-                        tokenId: currentSessionId, 
-                        type: 'MFA_SESSION', 
+                        code, tokenId: currentSessionId, type: 'MFA_SESSION', 
                         authType: isBackup ? 'BACKUP' : 'TOTP' 
                     })
                 });
@@ -224,28 +296,7 @@
             } catch (e) { alert("System error"); }
         }
 
-        function toggleMfaMode() {
-            const input = document.getElementById('input-mfa-code');
-            const link = document.getElementById('mfa-alt-link');
-            const desc = document.getElementById('mfa-desc');
-            
-            if (mfaMode === 'TOTP') {
-                mfaMode = 'BACKUP';
-                desc.innerText = "Enter one of your 8-character backup codes.";
-                link.innerText = "Use Authenticator App";
-                input.placeholder = "XXXXXXXX";
-                input.maxLength = 8;
-            } else {
-                mfaMode = 'TOTP';
-                desc.innerText = "Enter the 6-digit code from your app.";
-                link.innerText = "Lost access? Use backup code";
-                input.placeholder = "000000";
-                input.maxLength = 6;
-            }
-            input.value = "";
-        }
-
-        // --- CHAT LOGIC ---
+        // --- CHAT & UI ---
 
         function initApp(user) {
             currentUser = user;
@@ -254,16 +305,6 @@
             checkMfaStatus();
             loadHistory(true);
             connectWebSocket();
-        }
-
-        async function authorizedFetch(url, options = {}) {
-            let res = await fetch(url, options);
-            if (res.status === 401 && url !== '/api/auth/refresh' && url !== '/api/auth/login') {
-                const refreshRes = await fetch('/api/auth/refresh', { method: 'POST' });
-                if (refreshRes.ok) return await fetch(url, options);
-                else { showAuthForm(); return res; }
-            }
-            return res;
         }
 
         function connectWebSocket() {
@@ -320,7 +361,27 @@
             else { container.appendChild(div); container.scrollTop = container.scrollHeight; }
         }
 
-        // --- MFA SETUP & MANAGEMENT ---
+        async function authorizedFetch(url, options = {}) {
+            let res = await fetch(url, options);
+            if (res.status === 401 && url !== '/api/auth/refresh' && url !== '/api/auth/login') {
+                const refreshRes = await fetch('/api/auth/refresh', { method: 'POST' });
+                if (refreshRes.ok) return await fetch(url, options);
+                else { showAuthForm(); return res; }
+            }
+            return res;
+        }
+
+        // --- MFA MGMT ---
+
+        async function checkMfaStatus() {
+            const res = await authorizedFetch('/api/auth/mfa/status');
+            if (res.ok) {
+                const methods = await res.json();
+                const enabled = methods.includes('TOTP');
+                document.getElementById('btn-mfa-setup').style.display = enabled ? 'none' : 'block';
+                document.getElementById('btn-mfa-disable').style.display = enabled ? 'block' : 'none';
+            }
+        }
 
         async function openMfaSetup() {
             const res = await authorizedFetch('/api/auth/mfa/setup');
@@ -352,16 +413,6 @@
             } else alert("Invalid code");
         }
 
-        async function checkMfaStatus() {
-            const res = await authorizedFetch('/api/auth/mfa/status');
-            if (res.ok) {
-                const methods = await res.json();
-                const enabled = methods.includes('TOTP');
-                document.getElementById('btn-mfa-setup').style.display = enabled ? 'none' : 'block';
-                document.getElementById('btn-mfa-disable').style.display = enabled ? 'block' : 'none';
-            }
-        }
-
         async function disableMfaPrompt() {
             const code = prompt("Enter 6-digit code to DISABLE 2FA:");
             if (!code) return;
@@ -373,7 +424,16 @@
             else alert("Error disabling 2FA");
         }
 
-        // --- HELPERS ---
+        function toggleMfaMode() {
+            const input = document.getElementById('input-mfa-code');
+            const link = document.getElementById('mfa-alt-link');
+            const desc = document.getElementById('mfa-desc');
+            mfaMode = mfaMode === 'TOTP' ? 'BACKUP' : 'TOTP';
+            desc.innerText = mfaMode === 'TOTP' ? "Enter the 6-digit code from your app." : "Enter one of your 8-character backup codes.";
+            link.innerText = mfaMode === 'TOTP' ? "Lost access? Use backup code" : "Use Authenticator App";
+            input.placeholder = mfaMode === 'TOTP' ? "000000" : "XXXXXXXX";
+            input.value = "";
+        }
 
         function switchMode(m) {
             document.getElementById('tab-login').className = m === 'login' ? 'tab active' : 'tab';
@@ -382,14 +442,23 @@
             hideError();
         }
 
+        function showAuthForm() {
+            document.getElementById('auth-container').style.display = 'block';
+            document.getElementById('auth-main-view').style.display = 'block';
+            document.getElementById('chat-container').style.display = 'none';
+        }
+
+        function showMfaChallengeView() {
+            document.getElementById('auth-main-view').style.display = 'none';
+            document.getElementById('mfa-challenge-view').style.display = 'block';
+            document.getElementById('auth-container').style.display = 'block';
+        }
+
         function showError(m) { const e = document.getElementById('auth-error'); e.innerText = m; e.style.display = 'block'; }
         function hideError() { document.getElementById('auth-error').style.display = 'none'; }
         function closeMfaModal() { document.getElementById('mfa-modal').style.display = 'none'; checkMfaStatus(); }
+        function logout() { fetch('/api/auth/logout', {method: 'POST'}).finally(() => location.reload()); }
         
-        function logout() { 
-            fetch('/api/auth/logout', {method: 'POST'}).finally(() => location.reload()); 
-        }
-
         function downloadBackupCodes() {
             const blob = new Blob([currentBackupCodes.join('\n')], {type: 'text/plain'});
             const a = document.createElement('a');

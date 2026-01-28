@@ -94,8 +94,9 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   public AuthResponse login(LoginRequest request, String ip, String agent) {
-    Account account = repository.findByEmail(request.email())
-      .orElseThrow(() -> new IllegalArgumentException("No account with such email: " + request.email()));
+    Account account = repository.findByEmail(request.identifier())
+      .orElseGet(() -> repository.findByLogin(request.identifier())
+      .orElseThrow(() -> new IllegalArgumentException("Invalid credentials")));
 
     if (!passwordEncoder.matches(request.password(), account.getPassword())) {
       throw new IllegalArgumentException("Wrong password or login!");
