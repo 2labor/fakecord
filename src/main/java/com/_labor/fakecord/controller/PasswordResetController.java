@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.dto.PasswordResetConfirm;
 import com._labor.fakecord.domain.dto.PasswordResetRequest;
+import com._labor.fakecord.security.ratelimit.RateLimitSource;
+import com._labor.fakecord.security.ratelimit.annotation.RateLimited;
 import com._labor.fakecord.services.PasswordResetService;
 import com._labor.fakecord.utils.RequestUtil;
 
@@ -26,6 +28,12 @@ public class PasswordResetController {
   }
 
   @PostMapping("/reset-request")
+  @RateLimited(
+    key = "forgot_password",
+    capacity = 3,
+    refillSeconds = 300,
+    source = RateLimitSource.JSON_BODY
+  )
   public ResponseEntity<?> requestRest(
     @Valid @RequestBody PasswordResetRequest request,
     HttpServletRequest httpRequest

@@ -23,6 +23,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com._labor.fakecord.repository.UserRepository;
+import com._labor.fakecord.security.CachingRequestFilter;
 import com._labor.fakecord.security.TokenFilter;
 import com._labor.fakecord.security.oauth2.CustomOAuth2UserService;
 import com._labor.fakecord.security.oauth2.OAuth2SuccessHandler;
@@ -54,7 +55,10 @@ public class SecurityConfig {
   }
 
   @Bean
-  public SecurityFilterChain filterChain(HttpSecurity http, TokenFilter tokenFilter) throws Exception {
+  public SecurityFilterChain filterChain(
+      HttpSecurity http,
+      TokenFilter tokenFilter,
+      CachingRequestFilter cachingFilter) throws Exception {
     http
         .csrf(AbstractHttpConfigurer::disable)
         .cors(Customizer.withDefaults())
@@ -62,7 +66,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/", "/index.html", "/static/**", "/*.js", "/*.css").permitAll()
             .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
-            .requestMatchers("/mfa-verify", "/api/auth/mfa/verify-totp").permitAll() 
+            .requestMatchers("/mfa-verify", "/api/auth/mfa/verify-totp").permitAll()
             .requestMatchers("/api/auth/verify", "/api/auth/mfa/backup/verify").permitAll()
             .requestMatchers("/api/auth/**", "/login/**", "/oauth2/**").permitAll()
             .requestMatchers("/auth/reset").permitAll()
@@ -72,6 +76,8 @@ public class SecurityConfig {
             .userInfoEndpoint(userInfo -> userInfo
                 .userService(customOAuth2UserService))
             .successHandler(oAuth2SuccessHandler));
+
+    http.addFilterBefore(cachingFilter, UsernamePasswordAuthenticationFilter.class);
 
     http.addFilterBefore(tokenFilter, UsernamePasswordAuthenticationFilter.class);
 

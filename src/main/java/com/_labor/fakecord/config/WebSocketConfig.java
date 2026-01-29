@@ -11,6 +11,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+import com._labor.fakecord.interceptor.RateLimitInterceptor;
 import com._labor.fakecord.interceptor.ValidationInterceptor;
 
 @Configuration
@@ -20,9 +21,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
   @Autowired
   private ValidationInterceptor validator;
 
+  @Autowired
+  private RateLimitInterceptor rateLimitInterceptor;
+
   @Override
   public void configureClientInboundChannel(ChannelRegistration registration) {
-    registration.interceptors(validator);
+    registration.interceptors(rateLimitInterceptor, validator);
   }
 
   @Override 
@@ -32,14 +36,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      * manages goes from server to client starts from "/topic"
      * client will subscribed on canal "/topic/public" 
      */
-    registry.enableSimpleBroker("/topic")
-    .setHeartbeatValue(new long[]{10000, 10000})
-    .setTaskScheduler(heartbeatScheduler());
+    registry.enableSimpleBroker("/topic", "/queue")
+      .setHeartbeatValue(new long[]{10000, 10000})
+      .setTaskScheduler(heartbeatScheduler());
     
     /**
      * manages goes from client to server starts from "/app"
      */
     registry.setApplicationDestinationPrefixes("/app");
+
+    registry.setUserDestinationPrefix("/user");
   }
 
   @Override

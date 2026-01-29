@@ -17,6 +17,8 @@ import com._labor.fakecord.domain.entity.UserAuthenticator;
 import com._labor.fakecord.domain.mappper.UserMapper;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.security.JwtCore;
+import com._labor.fakecord.security.ratelimit.RateLimitSource;
+import com._labor.fakecord.security.ratelimit.annotation.RateLimited;
 import com._labor.fakecord.services.AuthService;
 import com._labor.fakecord.services.BackupCodeService;
 import com._labor.fakecord.services.RefreshTokenService;
@@ -94,6 +96,12 @@ public class AuthController {
   }
 
   @PostMapping("/login")
+  @RateLimited(
+    key = "auth_login",
+    capacity = 5,
+    refillSeconds = 300,
+    source = RateLimitSource.JSON_BODY
+  )
   public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
     String ip = RequestUtil.getClientIp(httpRequest);
     String agent = RequestUtil.getClientAgent(httpRequest);
