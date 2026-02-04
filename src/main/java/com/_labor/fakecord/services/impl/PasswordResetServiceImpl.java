@@ -13,6 +13,7 @@ import com._labor.fakecord.domain.entity.TokenType;
 import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.domain.entity.VerificationToken;
 import com._labor.fakecord.domain.events.PasswordResetRequestedEvent;
+import com._labor.fakecord.infrastructure.UserSecurityService;
 import com._labor.fakecord.repository.AccountRepository;
 import com._labor.fakecord.repository.SocialAccountRepository;
 import com._labor.fakecord.services.PasswordResetService;
@@ -31,15 +32,17 @@ public class PasswordResetServiceImpl implements PasswordResetService{
   private final VerificationTokenService verificationTokenService; 
   private final ApplicationEventPublisher applicationEventPublisher;
   private final PasswordEncoder passwordEncoder;
+  private final UserSecurityService userSecurityService;
 
   public PasswordResetServiceImpl(AccountRepository accountRepository, SocialAccountRepository socialAccountRepository,
       VerificationTokenService verificationTokenService, ApplicationEventPublisher applicationEventPublisher,
-      PasswordEncoder passwordEncoder) {
+      PasswordEncoder passwordEncoder, UserSecurityService userSecurityService) {
     this.accountRepository = accountRepository;
     this.socialAccountRepository = socialAccountRepository;
     this.verificationTokenService = verificationTokenService;
     this.applicationEventPublisher = applicationEventPublisher;
     this.passwordEncoder = passwordEncoder;
+    this.userSecurityService = userSecurityService;
   }
 
   @Override
@@ -74,6 +77,8 @@ public class PasswordResetServiceImpl implements PasswordResetService{
 
     account.setPassword(passwordEncoder.encode(newPassword));
     accountRepository.save(account);
+
+    userSecurityService.resetUserSecurityEpoch(user.getId());
 
     verificationTokenService.deleteTokenSafe(verificationToken.getId(), TokenType.PASSWORD_RESET);
 

@@ -50,7 +50,7 @@ public void onAuthenticationSuccess(HttpServletRequest request, HttpServletRespo
             return;
         }
 
-        String accessToken = jwtCore.generateToken(user.getId());
+        String accessToken = jwtCore.generateToken(user.getId(), user.getTokenVersion());
         var refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         response.addHeader("Set-Cookie", jwtCore.createAccessTokenCookie(accessToken).toString());

@@ -13,10 +13,14 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 import com._labor.fakecord.interceptor.RateLimitInterceptor;
 import com._labor.fakecord.interceptor.ValidationInterceptor;
+import com._labor.fakecord.interceptor.WebSocketTokenFilter;
 
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+  @Autowired
+  private WebSocketTokenFilter tokenFilter;
 
   @Autowired
   private ValidationInterceptor validator;
@@ -26,7 +30,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
   @Override
   public void configureClientInboundChannel(ChannelRegistration registration) {
-    registration.interceptors(rateLimitInterceptor, validator);
+    registration.interceptors(tokenFilter, rateLimitInterceptor, validator);
   }
 
   @Override 

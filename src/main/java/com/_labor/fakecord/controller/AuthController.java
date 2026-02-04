@@ -161,7 +161,10 @@ public class AuthController {
     return refreshTokenService.findByToken(token)
       .map(refreshTokenService::verifyExpiration)
       .map(rt -> {
-        String newAccessToken = jwtCore.generateToken(rt.getUser().getId());
+        String newAccessToken = jwtCore.generateToken(
+          rt.getUser().getId(),
+          rt.getUser().getTokenVersion()
+        );
         ResponseCookie accessCookie = jwtCore.createAccessTokenCookie(newAccessToken);
         ResponseCookie refreshCookie = jwtCore.createRefreshTokenCookie(rt.getToken());
 

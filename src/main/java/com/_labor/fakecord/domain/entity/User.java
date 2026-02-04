@@ -5,8 +5,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com._labor.fakecord.domain.model.UserSecuritySettings;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -32,11 +35,17 @@ public class User {
   @OneToOne(mappedBy = "user")
   private Account account;
 
+  @Embedded
+  private UserSecuritySettings securitySettings = new UserSecuritySettings();
+
   @Column(name = "created", nullable = false)
   private LocalDateTime createdAt;
 
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<SocialAccount> socialAccounts = new ArrayList<>();
+
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<RefreshToken> refreshTokens = new ArrayList<>();
 
   @Column(name = "updated", nullable = false)
   private LocalDateTime updatedAt;
@@ -56,6 +65,13 @@ public class User {
 
     this.createdAt = now;
     this.updatedAt = now;
+
+    if (securitySettings == null) {
+      securitySettings = new UserSecuritySettings();
+    }
+    if (securitySettings.getTokenVersion() == 0) {
+      securitySettings.setTokenVersion(1);
+    }
   }
 
   @PreUpdate
@@ -87,6 +103,10 @@ public class User {
     this.account = account;
   }
 
+  public int getTokenVersion() {
+    return securitySettings.getTokenVersion();
+  }
+
   public LocalDateTime getCreatedAt() {
     return createdAt;
   }
@@ -101,6 +121,10 @@ public class User {
 
   public void setSocialAccounts(List<SocialAccount> socialAccounts) {
     this.socialAccounts = socialAccounts;
+  }
+
+  public List<RefreshToken> getRefreshTokens() {
+    return refreshTokens;
   }
 
   public LocalDateTime getUpdatedAt() {

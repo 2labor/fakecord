@@ -1,6 +1,7 @@
 package com._labor.fakecord.services.impl;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.domain.entity.UserAuthenticator;
 import com._labor.fakecord.domain.entity.VerificationToken;
 import com._labor.fakecord.domain.mappper.UserMapper;
+import com._labor.fakecord.infrastructure.TokenProvider;
 import com._labor.fakecord.repository.AccountRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.security.JwtCore;
@@ -25,14 +27,15 @@ import com._labor.fakecord.services.UserAuthenticatorService;
 import com._labor.fakecord.services.VerificationTokenService;
 
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
-
+@Slf4j
 @Service
 public class AuthServiceImpl implements AuthService {
 
   private final AccountRepository repository;
   private final PasswordEncoder passwordEncoder;
-  private final JwtCore jwtCore;
+  private final TokenProvider tokenProvider;
   private final UserMapper mapper;
   private final UserRepository userRepository;
   private final UserAuthenticatorService userAuthenticatorService;
@@ -41,7 +44,7 @@ public class AuthServiceImpl implements AuthService {
   public AuthServiceImpl(
       AccountRepository repository, 
       PasswordEncoder passwordEncoder, 
-      JwtCore jwtCore,
+      TokenProvider tokenProvider,
       UserMapper mapper,
       UserRepository userRepository,
       UserAuthenticatorService userAuthenticatorService,
@@ -49,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
     ) {
     this.repository = repository;
     this.passwordEncoder = passwordEncoder;
-    this.jwtCore = jwtCore;
+    this.tokenProvider = tokenProvider;
     this.mapper = mapper;
     this.userRepository = userRepository;
     this.userAuthenticatorService = userAuthenticatorService;
@@ -81,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
 
     Account savedAccount = repository.save(account);
 
-    String token = jwtCore.generateToken(savedAccount.getUser().getId());
+    String token = tokenProvider.createAccessToken(user.getId());
 
     UserDto userDto = mapper.toDto(savedAccount.getUser());
 
@@ -119,7 +122,7 @@ public class AuthServiceImpl implements AuthService {
         .build();
     }
 
-    String token = jwtCore.generateToken(user.getId());
+    String token = tokenProvider.createAccessToken(user.getId());
     return AuthResponse.builder()
       .token(token)
       .userDto(mapper.toDto(user))
@@ -142,12 +145,23 @@ public class AuthServiceImpl implements AuthService {
       throw new IllegalArgumentException("Invalid verify code!");
     }
 
-    String jwtToken = jwtCore.generateToken(user.getId());
+    String jwtToken = tokenProvider.createAccessToken(user.getId());
 
     return AuthResponse.builder()
       .token(jwtToken)
       .userDto(mapper.toDto(user))
       .mfaRequired(false)
       .build();
+  }
+
+
+  @Override
+  @Transactional
+  public void logoutEverywhere(UUID userId) {
+    userRepository.incrementTokenVersion(userId);
+
+    tokenProvider.removeAllAccess(userId); 
+    
+    log.info("Global logout for user {}: Database version incremented and all sessions revoked.", userId);
   }
 }

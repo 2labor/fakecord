@@ -84,7 +84,7 @@ public class BackupMfaController {
 
 
   private ResponseEntity<?> generateAuthResponse(User user) {
-    String accessToken = jwtCore.generateToken(user.getId());
+    String accessToken = jwtCore.generateToken(user.getId(), user.getTokenVersion());
     ResponseCookie accessCookie = jwtCore.createAccessTokenCookie(accessToken);
 
     var refreshToken = refreshTokenService.createRefreshToken(user.getId());

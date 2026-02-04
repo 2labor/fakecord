@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:,">
     <title>Fakecord | Global Chat</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
@@ -437,7 +438,7 @@
             if (mode === 'login') {
                 endpoint = '/api/auth/login';
                 payload = {
-                    login: loginValue,
+                    identifier: loginValue,
                     password: passwordValue
                 };
             } else {
@@ -555,16 +556,42 @@
         function connectWebSocket() {
             const socket = new SockJS('/ws-chat');
             stompClient = Stomp.over(socket);
-            stompClient.debug = null;
-            stompClient.connect({}, () => {
-                stompClient.subscribe('/topic/public', (p) => renderMessage(JSON.parse(p.body), false));
-                stompClient.subscribe('/user/queue/errors', (msg) => {
-                    renderErrorMessage(msg.body);
-                });
-                stompClient.send("/app/chat.send", {}, JSON.stringify({
-                    type: 'JOIN', content: `${currentUser.name || currentUser.login} joined`, userDto: currentUser
-                }));
-            });
+            stompClient.debug = (str) => console.log(str); 
+
+            stompClient.connect({}, 
+                (frame) => {
+                    console.log('Connected success!');
+                    stompClient.subscribe('/topic/public', (p) => renderMessage(JSON.parse(p.body), false));
+                    
+                    stompClient.subscribe('/user/queue/errors', (msg) => {
+                        renderErrorMessage(msg.body);
+                    });
+
+                    stompClient.send("/app/chat.send", {}, JSON.stringify({
+                        type: 'JOIN', content: `${currentUser.name || currentUser.login} joined`, userDto: currentUser
+                    }));
+                }, 
+                (error) => {
+                    console.error('STOMP Protocol Error:', error);
+                    if (error.headers && (error.headers.message === 'TOKEN_OUTDATED')) {
+                        handleSessionExpired();
+                    }
+                }
+            );
+        }
+
+        function handleSessionExpired() {
+            if (stompClient) {
+                stompClient.disconnect();
+            }
+            
+            currentUser = null;
+
+            document.getElementById('chat-container').style.display = 'none';
+            document.getElementById('auth-container').style.display = 'block';
+            document.getElementById('auth-main-view').style.display = 'block';
+            
+            showError("Session expired. Please log in again.");
         }
 
         async function loadHistory(isInitial) {
@@ -715,7 +742,10 @@
         function showError(m) { const e = document.getElementById('auth-error'); e.innerText = m; e.style.display = 'block'; }
         function hideError() { document.getElementById('auth-error').style.display = 'none'; }
         function closeMfaModal() { document.getElementById('mfa-modal').style.display = 'none'; checkMfaStatus(); }
-        function logout() { fetch('/api/auth/logout', { method: 'POST' }).finally(() => location.reload()); }
+        function logout() {
+            if (stompClient) stompClient.disconnect(); 
+            fetch('/api/auth/logout', { method: 'POST' }).finally(() => location.reload());
+        }
 
         function downloadBackupCodes() {
             const blob = new Blob([currentBackupCodes.join('\n')], { type: 'text/plain' });

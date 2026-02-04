@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -28,26 +29,36 @@ public class JwtCore {
   @Value("${fakecord.jwt.refreshExpirationMs}")
   private long refreshTokenDurationMs;
 
+  private static final String VERSION_CLAIM = "v";  
+
   private SecretKey getSigningKey() {
     return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
   }
 
-  public String generateToken(UUID userId) {
+  public String generateToken(UUID userId, int tokenVersion) {
     return Jwts.builder()
       .setSubject(userId.toString()) // set user id as a subject
+      .claim(VERSION_CLAIM, tokenVersion)
       .setIssuedAt(new Date()) // date of creation
       .setExpiration(new Date(System.currentTimeMillis() + lifetime)) // date of expiring
       .signWith(getSigningKey(),SignatureAlgorithm.HS256) // sign up key
       .compact(); // build final string
   } 
 
-  public String extractUserId(String token) {
+  private Claims extractAllClaims(String tokens) {
     return Jwts.parserBuilder()
       .setSigningKey(getSigningKey())
       .build()
-      .parseClaimsJws(token)
-      .getBody()
-      .getSubject();
+      .parseClaimsJws(tokens)
+      .getBody();
+  }
+
+  public String extractUserId(String token) {
+    return extractAllClaims(token).getSubject();
+  }
+
+  public Integer extractTokenVersion(String token) {
+    return extractAllClaims(token).get("v", Integer.class);
   }
 
   public String getJwtFromCookies(HttpServletRequest request) {
