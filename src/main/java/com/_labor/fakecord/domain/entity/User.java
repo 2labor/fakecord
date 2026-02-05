@@ -45,6 +45,9 @@ public class User {
   private List<SocialAccount> socialAccounts = new ArrayList<>();
 
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<EmailIdentity> emailIdentities = new ArrayList<>();
+
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<RefreshToken> refreshTokens = new ArrayList<>();
 
   @Column(name = "updated", nullable = false)
@@ -121,6 +124,10 @@ public class User {
 
   public void setSocialAccounts(List<SocialAccount> socialAccounts) {
     this.socialAccounts = socialAccounts;
+  }
+
+  public List<EmailIdentity> getEmailIdentities() {
+    return emailIdentities;
   }
 
   public List<RefreshToken> getRefreshTokens() {

@@ -26,9 +26,6 @@ public class Account {
   @Column(name = "login", nullable = false, unique = true)
   private String login;
 
-  @Column(name = "email", nullable = false, unique = true)
-  private String email;
-
   @Column(name = "password", nullable = true)
   private String password;
 
@@ -42,18 +39,16 @@ public class Account {
   @Column(name = "updated_at")
   private LocalDateTime updatedAt;
 
-  public Account(UUID id, String login, String email, String password, User user) {
+  public Account(UUID id, String login, String password, User user) {
     this.id = id;
     this.login = login;
-    this.email = email;
     this.password = password;
     this.user = user;
   }
 
-  public Account(UUID id, String login, String email, User user) {
+  public Account(UUID id, String login, User user) {
     this.id = id;
     this.login = login;
-    this.email = email;
     this.user = user;
   }
 
@@ -89,14 +84,6 @@ public class Account {
     this.login = login;
   }
 
-  public String getEmail() {
-    return email;
-  }
-
-  public void setEmail(String email) {
-    this.email = email;
-  }
-
   public String getPassword() {
     return password;
   }
@@ -115,7 +102,7 @@ public class Account {
 
   @Override
   public String toString() {
-    return "Account [id=" + id + ", login=" + login + ", email=" + email + ", password=" + password + ", createdAt="
+    return "Account [id=" + id + ", login=" + login + ", password=" + password + ", createdAt="
         + createdAt + ", updatedAt=" + updatedAt + "]";
   }
 
@@ -125,7 +112,6 @@ public class Account {
     int result = 1;
     result = prime * result + ((id == null) ? 0 : id.hashCode());
     result = prime * result + ((login == null) ? 0 : login.hashCode());
-    result = prime * result + ((email == null) ? 0 : email.hashCode());
     result = prime * result + ((password == null) ? 0 : password.hashCode());
     result = prime * result + ((createdAt == null) ? 0 : createdAt.hashCode());
     result = prime * result + ((updatedAt == null) ? 0 : updatedAt.hashCode());
@@ -150,11 +136,6 @@ public class Account {
       if (other.login != null)
         return false;
     } else if (!login.equals(other.login))
-      return false;
-    if (email == null) {
-      if (other.email != null)
-        return false;
-    } else if (!email.equals(other.email))
       return false;
     if (password == null) {
       if (other.password != null)

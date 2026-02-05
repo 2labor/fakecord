@@ -25,7 +25,6 @@ public class AccountMapperImpl implements AccountMapper{
     Account account = new Account();
     account.setId(dto.id());
     account.setLogin(dto.login());
-    account.setEmail(dto.email());
 
     if (null != dto.userDto()) {
       User user = userMapper.fromDto(dto.userDto());
@@ -44,7 +43,6 @@ public class AccountMapperImpl implements AccountMapper{
     return new AccountDto(
       account.getId(),
       account.getLogin(), 
-      account.getEmail(), 
       userMapper.toDto(account.getUser())
     );
   }

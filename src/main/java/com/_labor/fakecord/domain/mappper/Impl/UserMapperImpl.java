@@ -24,9 +24,19 @@ public class UserMapperImpl implements UserMapper {
   public UserDto toDto(User user) {
     if (user == null) return null;
 
+    String primaryEmail = null;
+    if (user.getEmailIdentities() != null) {
+      primaryEmail = user.getEmailIdentities().stream()
+        .filter(identity -> identity.isPrimary())
+        .map(identity -> identity.getEmail())
+        .findFirst()
+        .orElse(null);
+    }
+
     return new UserDto(
       user.getId(),
-      user.getName()
+      user.getName(),
+      primaryEmail
     );
   }
 }

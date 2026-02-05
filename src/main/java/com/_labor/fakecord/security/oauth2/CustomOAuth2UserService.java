@@ -11,9 +11,9 @@ import org.springframework.stereotype.Service;
 import com._labor.fakecord.domain.entity.AuthProvider;
 import com._labor.fakecord.domain.entity.SocialAccount;
 import com._labor.fakecord.domain.entity.User;
-import com._labor.fakecord.repository.AccountRepository;
 import com._labor.fakecord.repository.SocialAccountRepository;
 import com._labor.fakecord.repository.UserRepository;
+import com._labor.fakecord.services.IdentityService;
 
 import jakarta.transaction.Transactional;
 
@@ -22,14 +22,13 @@ import jakarta.transaction.Transactional;
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
   private final UserRepository userRepository;
   private final SocialAccountRepository socialAccountRepository;
-  private final AccountRepository accountRepository;
+  private final IdentityService identityService;
 
 
-  public CustomOAuth2UserService(UserRepository userRepository, SocialAccountRepository socialAccountRepository,
-      AccountRepository accountRepository) {
+  public CustomOAuth2UserService(UserRepository userRepository, SocialAccountRepository socialAccountRepository, IdentityService identityService) {
     this.userRepository = userRepository;
     this.socialAccountRepository = socialAccountRepository;
-    this.accountRepository = accountRepository;
+    this.identityService = identityService;
   }
 
   @Transactional
@@ -58,28 +57,35 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
       .findByProviderAndProviderId(provider, providerId);
 
     if (socialAccountOpt.isPresent()) {
-      return socialAccountOpt.get().getUser();
+      User user = socialAccountOpt.get().getUser();
+      identityService.verifyEmail(email);
+      return user;
     }
 
-    User user = accountRepository.findByEmail(email)
-      .map(account -> account.getUser())
+    User user = identityService.findByEmail(email)
+      .map(identity -> {
+        identityService.verifyEmail(email);
+        return identity.getUser();
+      })
       .orElseGet(() -> {
         User newUser = new User();
-        newUser.setName(name);
-        return userRepository.save(newUser);
+          newUser.setName(name);
+          newUser = userRepository.save(newUser);
+          
+          identityService.linkEmailToUser(newUser, email, provider, true, true);
+          return newUser;
       });
 
-    if (socialAccountRepository.findByUserAndProvider(user, provider).isEmpty()) {
-      SocialAccount socialAccount = new SocialAccount();
-      socialAccount.setUser(user);
-      socialAccount.setProvider(provider);
-      socialAccount.setProviderId(providerId);
-      socialAccount.setEmail(email); 
-      socialAccountRepository.save(socialAccount);
-    }
+      if (socialAccountRepository.findByUserAndProvider(user, provider).isEmpty()) {
+        SocialAccount socialAccount = new SocialAccount();
+        socialAccount.setUser(user);
+        socialAccount.setProvider(provider);
+        socialAccount.setProviderId(providerId);
+        socialAccountRepository.save(socialAccount);
+      }
 
-    return user;
+      user.getTokenVersion();
+
+      return user;
   }
 }
-
-

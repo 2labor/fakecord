@@ -1,0 +1,13 @@
+package com._labor.fakecord.repository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com._labor.fakecord.domain.entity.EmailIdentity;
+
+public interface EmailIdentityRepository extends JpaRepository<EmailIdentity, UUID>{
+  Optional<EmailIdentity> findByEmail(String email);
+  boolean existsByEmail(String email);
+}

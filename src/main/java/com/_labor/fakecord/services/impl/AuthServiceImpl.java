@@ -13,6 +13,8 @@ import com._labor.fakecord.domain.dto.UserDto;
 import com._labor.fakecord.domain.dto.VerificationRequest;
 import com._labor.fakecord.domain.entity.Account;
 import com._labor.fakecord.domain.entity.AuthMethodType;
+import com._labor.fakecord.domain.entity.AuthProvider;
+import com._labor.fakecord.domain.entity.EmailIdentity;
 import com._labor.fakecord.domain.entity.TokenType;
 import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.domain.entity.UserAuthenticator;
@@ -23,6 +25,7 @@ import com._labor.fakecord.repository.AccountRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.security.JwtCore;
 import com._labor.fakecord.services.AuthService;
+import com._labor.fakecord.services.IdentityService;
 import com._labor.fakecord.services.UserAuthenticatorService;
 import com._labor.fakecord.services.VerificationTokenService;
 
@@ -40,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
   private final UserRepository userRepository;
   private final UserAuthenticatorService userAuthenticatorService;
   private final VerificationTokenService verificationTokenService;
+  private final IdentityService identityService;
 
   public AuthServiceImpl(
       AccountRepository repository, 
@@ -48,7 +52,8 @@ public class AuthServiceImpl implements AuthService {
       UserMapper mapper,
       UserRepository userRepository,
       UserAuthenticatorService userAuthenticatorService,
-      VerificationTokenService verificationTokenService
+      VerificationTokenService verificationTokenService,
+      IdentityService identityService
     ) {
     this.repository = repository;
     this.passwordEncoder = passwordEncoder;
@@ -57,31 +62,32 @@ public class AuthServiceImpl implements AuthService {
     this.userRepository = userRepository;
     this.userAuthenticatorService = userAuthenticatorService;
     this.verificationTokenService = verificationTokenService;
+    this.identityService = identityService;
   }
 
 
   @Override
   @Transactional
   public AuthResponse register(RegisterRequest request) {
-    if (repository.existsByEmail(request.email())) {
+    if (identityService.existByEmail(request.email())) {
       throw new IllegalArgumentException("Account with such email is already exist!");
     }
 
-    User user = userRepository.findByEmailAcrossAllProviders(request.email())
+    User user = identityService.findByEmail(request.email())
+    .map(EmailIdentity::getUser)
     .orElseGet(() -> {
       User newUser = new User();
       newUser.setName(request.userName());
       return userRepository.save(newUser);
     });
 
+    identityService.linkEmailToUser(user, request.email(), AuthProvider.LOCAL, false, true);
+
     Account account = new Account();
     account.setLogin(request.login());
-    account.setEmail(request.email());
     account.setPassword(passwordEncoder.encode(request.password()));
-
     user.setAccount(account);
     account.setUser(user);
-
     Account savedAccount = repository.save(account);
 
     String token = tokenProvider.createAccessToken(user.getId());
@@ -97,15 +103,15 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   public AuthResponse login(LoginRequest request, String ip, String agent) {
-    Account account = repository.findByEmail(request.identifier())
-      .orElseGet(() -> repository.findByLogin(request.identifier())
-      .orElseThrow(() -> new IllegalArgumentException("Invalid credentials")));
+    User user = findUserByIdentifier(request.identifier());
+
+    Account account = repository.findByUser(user)
+      .orElseThrow(() -> new IllegalArgumentException("Password not set for this account. Use Social Login."));
 
     if (!passwordEncoder.matches(request.password(), account.getPassword())) {
       throw new IllegalArgumentException("Wrong password or login!");
     }
 
-    User user = account.getUser();
     var activeMfaMethods = userAuthenticatorService.getActiveMethods(user.getId());
 
     if (!activeMfaMethods.isEmpty()) {
@@ -130,6 +136,13 @@ public class AuthServiceImpl implements AuthService {
       .build();
   }
 
+  private User findUserByIdentifier(String identifier) {
+    return identityService.findByEmail(identifier)
+      .map(EmailIdentity::getUser)
+      .orElseGet(() -> repository.findByLogin(identifier)
+      .map(Account::getUser)
+    .orElseThrow(() -> new IllegalArgumentException("Invalid credential")));
+  }
 
   @Override
   public AuthResponse verify(VerificationRequest request, String ip, String agent) {

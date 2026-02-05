@@ -15,10 +15,6 @@ import jakarta.transaction.Transactional;
 public interface UserRepository extends JpaRepository<User, UUID> {
   Optional<User> findByName(String name);
   boolean existsByName(String name);
-  @Query("SELECT u FROM User u " +
-    "LEFT JOIN u.account a " +
-    "WHERE a.email = :email")
-  Optional<User> findByEmailAcrossAllProviders(@Param("email") String email);
   @Query("SELECT u.securitySettings.tokenVersion FROM User u WHERE u.id = :id")
   Optional<Integer> findTokenVersionById(@Param("id") UUID id);
   @Modifying(clearAutomatically = true, flushAutomatically = true)
