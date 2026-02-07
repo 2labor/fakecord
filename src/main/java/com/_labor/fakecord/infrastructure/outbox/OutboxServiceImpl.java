@@ -1,0 +1,44 @@
+package com._labor.fakecord.infrastructure.outbox;
+
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Service
+@Slf4j
+public class OutboxServiceImpl implements OutboxService {
+
+  private final OutboxRepository repository;
+  private final ObjectMapper mapper;
+
+  public OutboxServiceImpl(OutboxRepository repository, ObjectMapper mapper) {
+    this.repository = repository;
+    this.mapper = mapper;
+  }
+
+  @Override
+  public void publish(UUID aggregateId, OutboxEventType type, Object payload) {
+    try {
+      String jsonPayload = mapper.writeValueAsString(payload);
+
+      OutboxEvent event = OutboxEvent.builder()
+        .type(type)
+        .aggregateId(aggregateId)
+        .payload(jsonPayload)
+        .status(EventStatus.PENDING)
+        .retryCount(0)
+        .build();
+      
+        repository.save(event); 
+        log.info("Event {} for aggregate {} saved to outbox", type, aggregateId);
+    } catch (Exception e) {
+      log.error("Failed to map event payload to JSON for aggregate {}", aggregateId, e);
+      throw new RuntimeException("Event serialization failed", e);
+    }
+  }
+  
+}

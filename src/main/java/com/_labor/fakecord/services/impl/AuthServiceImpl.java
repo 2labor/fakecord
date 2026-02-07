@@ -21,6 +21,9 @@ import com._labor.fakecord.domain.entity.UserAuthenticator;
 import com._labor.fakecord.domain.entity.VerificationToken;
 import com._labor.fakecord.domain.mappper.UserMapper;
 import com._labor.fakecord.infrastructure.TokenProvider;
+import com._labor.fakecord.infrastructure.outbox.OutboxEventType;
+import com._labor.fakecord.infrastructure.outbox.OutboxService;
+import com._labor.fakecord.infrastructure.outbox.UserRegisteredEvent;
 import com._labor.fakecord.repository.AccountRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.security.JwtCore;
@@ -44,6 +47,7 @@ public class AuthServiceImpl implements AuthService {
   private final UserAuthenticatorService userAuthenticatorService;
   private final VerificationTokenService verificationTokenService;
   private final IdentityService identityService;
+  private final OutboxService outboxService;
 
   public AuthServiceImpl(
       AccountRepository repository, 
@@ -53,7 +57,8 @@ public class AuthServiceImpl implements AuthService {
       UserRepository userRepository,
       UserAuthenticatorService userAuthenticatorService,
       VerificationTokenService verificationTokenService,
-      IdentityService identityService
+      IdentityService identityService,
+      OutboxService outboxService
     ) {
     this.repository = repository;
     this.passwordEncoder = passwordEncoder;
@@ -63,6 +68,7 @@ public class AuthServiceImpl implements AuthService {
     this.userAuthenticatorService = userAuthenticatorService;
     this.verificationTokenService = verificationTokenService;
     this.identityService = identityService;
+    this.outboxService = outboxService;
   }
 
 
@@ -93,6 +99,16 @@ public class AuthServiceImpl implements AuthService {
     String token = tokenProvider.createAccessToken(user.getId());
 
     UserDto userDto = mapper.toDto(savedAccount.getUser());
+
+    UserRegisteredEvent payload = new UserRegisteredEvent(
+      user.getId(),
+      request.email(),
+      request.userName()
+    );
+
+    outboxService.publish(
+      user.getId(), OutboxEventType.USER_REGISTERED, payload
+    );
 
     return AuthResponse.builder()
       .token(token)
