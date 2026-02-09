@@ -1,5 +1,6 @@
 package com._labor.fakecord.domain.mappper.Impl;
 
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Component;
 
 import com._labor.fakecord.domain.dto.UserDto;
@@ -25,22 +26,21 @@ public class UserMapperImpl implements UserMapper {
   public UserDto toDto(User user) {
     if (user == null) return null;
 
-    EmailIdentity primaryIdentity = null;
-    if (user.getEmailIdentities() != null) {
-      primaryIdentity = user.getEmailIdentities().stream()
+    String email = null;
+    boolean isVerified = false;
+
+    if (Hibernate.isInitialized(user.getEmailIdentities())) {
+      EmailIdentity primaryIdentity = user.getEmailIdentities().stream()
         .filter(EmailIdentity::isPrimary)
         .findFirst()
         .orElse(null);
+      
+      if (primaryIdentity != null) {
+        email = primaryIdentity.getEmail();
+        isVerified = primaryIdentity.isVerified();
+      }
     }
 
-    String email = (primaryIdentity != null) ? primaryIdentity.getEmail() : null;
-    boolean isVerified = (primaryIdentity != null) && primaryIdentity.isVerified();
-
-    return new UserDto(
-      user.getId(),
-      user.getName(),
-      email,
-      isVerified
-    );
+    return new UserDto(user.getId(), user.getName(), email, isVerified);
   }
 }

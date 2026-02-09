@@ -64,14 +64,13 @@ public class SecurityConfig {
         .cors(Customizer.withDefaults())
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
-          .requestMatchers("/", "/index.html", "/static/**", "/*.js", "/*.css").permitAll()
-          .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
-          .requestMatchers("/api/auth/verify/email").permitAll() 
-          .requestMatchers("/mfa-verify", "/api/auth/mfa/verify-totp", "/api/auth/mfa/backup/verify").permitAll()
-          .requestMatchers("/login/**", "/oauth2/**", "/auth/reset").permitAll()
-          .requestMatchers("/api/auth/verify/resend").authenticated()
-          .anyRequest().authenticated()
-        )
+            .requestMatchers("/", "/index.html", "/static/**", "/*.js", "/*.css").permitAll()
+            .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
+            .requestMatchers("/mfa-verify", "/api/auth/mfa/verify-totp").permitAll()
+            .requestMatchers("/api/auth/verify", "/api/auth/mfa/backup/verify").permitAll()
+            .requestMatchers("/api/auth/**", "/login/**", "/oauth2/**").permitAll()
+            .requestMatchers("/auth/reset").permitAll()
+            .anyRequest().authenticated())
         .oauth2Login(oauth2 -> oauth2
             .loginPage("/")
             .userInfoEndpoint(userInfo -> userInfo
