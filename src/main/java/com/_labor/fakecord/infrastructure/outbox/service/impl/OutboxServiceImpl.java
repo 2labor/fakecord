@@ -1,9 +1,14 @@
-package com._labor.fakecord.infrastructure.outbox;
+package com._labor.fakecord.infrastructure.outbox.service.impl;
 
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com._labor.fakecord.infrastructure.outbox.domain.EventStatus;
+import com._labor.fakecord.infrastructure.outbox.domain.OutboxEvent;
+import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
+import com._labor.fakecord.infrastructure.outbox.repository.OutboxRepository;
+import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
