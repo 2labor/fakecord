@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Email</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f2f2f2; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 640px; background-color: #ffffff; margin-top: 40px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        <tr>
+            <td style="padding: 40px 0; background-color: #5865F2; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 2px;">FAKECORD</h1>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 40px 50px;">
+                <h2 style="color: #313338; font-size: 20px; margin-bottom: 16px;" th:text="'Hey ' + ${username} + '!'">Hey there!</h2>
+                <p style="color: #4e5058; font-size: 16px; line-height: 24px;">
+                    Thanks for registering for an account on Fakecord! Before we get started, we just need to confirm that this is you. Click the button below to verify your email address:
+                </p>
+                <div style="text-align: center; margin: 35px 0;">
+                    <a th:href="${confirmUrl}" style="background-color: #5865F2; color: #ffffff; padding: 14px 28px; border-radius: 3px; text-decoration: none; font-weight: 500; display: inline-block;">Verify Email</a>
+                </div>
+                <p style="color: #4e5058; font-size: 14px; line-height: 20px;">
+                    If you didn't create a Fakecord account, you can safely ignore this email.
+                </p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 20px 50px; background-color: #f9f9f9; text-align: center;">
+                <p style="color: #949ba4; font-size: 12px; margin: 0;">Sent by Fakecord • 42 Engineering Way, Silicon Valley</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
