@@ -9,5 +9,6 @@ import com._labor.fakecord.domain.entity.EmailIdentity;
 
 public interface EmailIdentityRepository extends JpaRepository<EmailIdentity, UUID>{
   Optional<EmailIdentity> findByEmail(String email);
+  Optional<EmailIdentity> findByUserId(UUID userId);
   boolean existsByEmail(String email);
 }

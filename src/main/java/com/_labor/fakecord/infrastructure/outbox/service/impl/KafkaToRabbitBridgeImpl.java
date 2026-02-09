@@ -1,6 +1,7 @@
 package com._labor.fakecord.infrastructure.outbox.service.impl;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 public class KafkaToRabbitBridgeImpl implements EventBridge {
 
   private final RabbitTemplate template;
+
+  @Value("${app.registration.expiry-delay}")
+  private long expiryDelay;
 
   public KafkaToRabbitBridgeImpl(RabbitTemplate template) {
     this.template = template;
@@ -30,7 +34,7 @@ public class KafkaToRabbitBridgeImpl implements EventBridge {
         RabbitMQConfig.ROUTING_KEY,
         message,
         msg -> {
-          msg.getMessageProperties().setHeader("x-delay", 60000);
+          msg.getMessageProperties().setHeader("x-delay", expiryDelay);
             return msg;
         }
       );

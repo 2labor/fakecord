@@ -32,7 +32,7 @@ public class User {
   @Column(name = "name", nullable = false)
   private String name;
 
-  @OneToOne(mappedBy = "user")
+  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   private Account account;
 
   @Embedded
@@ -49,6 +49,15 @@ public class User {
 
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<RefreshToken> refreshTokens = new ArrayList<>();
+
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<VerificationToken> verificationTokens = new ArrayList<>();
+
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<BackupCode> backupCodes = new ArrayList<>();
+
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<UserAuthenticator> authenticators = new ArrayList<>();
 
   @Column(name = "updated", nullable = false)
   private LocalDateTime updatedAt;
