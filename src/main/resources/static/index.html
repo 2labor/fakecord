@@ -278,6 +278,35 @@
             display: block;
             text-align: center;
         }
+
+        .verification-banner {
+            display: none; 
+            background-color: var(--warning);
+            color: #000;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .verification-banner button {
+            width: auto;
+            padding: 5px 12px;
+            font-size: 0.8rem;
+            background: rgba(0, 0, 0, 0.1);
+            color: #000;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            font-weight: 600;
+        }
+
+        .verification-banner button:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
     </style>
 </head>
 
@@ -345,17 +374,20 @@
     </div>
 
     <div id="chat-container">
+        <div id="verify-banner" class="verification-banner" style="display: none;">
+            <span>Please check your email to verify your account.</span>
+            <button onclick="resendVerification()">Resend Email</button>
+        </div>
+
         <div id="messages">
             <div id="loading-indicator">Welcome to the beginning of the chat</div>
         </div>
-        <div
-            style="padding: 20px; background: var(--bg-card); display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05);">
+
+        <div id="chat-controls" style="padding: 20px; background: var(--bg-card); display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05);">
             <input type="text" id="msg-input" placeholder="Message #global" style="margin-bottom: 0;">
             <button onclick="sendMessage()" style="width: 80px;">Send</button>
-            <button id="btn-mfa-setup" onclick="openMfaSetup()"
-                style="width: 110px; background: var(--warning); display: none;">2FA Setup</button>
-            <button id="btn-mfa-disable" onclick="disableMfaPrompt()"
-                style="width: 110px; background: var(--danger); display: none;">Disable 2FA</button>
+            <button id="btn-mfa-setup" onclick="openMfaSetup()" style="width: 110px; background: var(--warning); display: none;">2FA Setup</button>
+            <button id="btn-mfa-disable" onclick="disableMfaPrompt()" style="width: 110px; background: var(--danger); display: none;">Disable 2FA</button>
             <button onclick="logout()" style="width: 70px; background: var(--danger);">Exit</button>
         </div>
     </div>
@@ -548,9 +580,37 @@
             currentUser = user;
             document.getElementById('auth-container').style.display = 'none';
             document.getElementById('chat-container').style.display = 'flex';
+            
+            // Toggle Verification Banner based on UserDto field 'isVerified'
+            const banner = document.getElementById('verify-banner');
+            if (currentUser && currentUser.isVerified === false) {
+                banner.style.display = 'flex';
+            } else {
+                banner.style.display = 'none';
+            }
+
             checkMfaStatus();
             loadHistory(true);
             connectWebSocket();
+        }
+
+        async function resendVerification() {
+            try {
+                const res = await authorizedFetch('/api/auth/verify/resend', {
+                    method: 'POST'
+                });
+
+                if (res.ok) {
+                    alert("Verification link has been sent to your email!");
+                } else if (res.status === 429) {
+                    alert("Too many requests. Please wait a minute before trying again.");
+                } else {
+                    const errorText = await res.text();
+                    alert("Failed to send email: " + errorText);
+                }
+            } catch (e) {
+                alert("Server connection error. Please try again later.");
+            }
         }
 
         function connectWebSocket() {

@@ -10,6 +10,7 @@ public record UserDto(
   @NotBlank(message = "name cannot be blank")
   @Size(min = 3, max = 24, message = "Size of a name should 3-24 characters")
   String name,
-  String email
+  String email,
+  boolean isVerified
 ) {
 }

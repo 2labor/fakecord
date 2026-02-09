@@ -54,7 +54,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService{
       .build();
 
     tokenRepository.save(token);
-    // mailService.sendDiscordStyleConfirmation(email, user.getName(), tokenValue);
+    mailService.sendDiscordStyleConfirmation(email, user.getName(), tokenValue);
   }
 
   @Override

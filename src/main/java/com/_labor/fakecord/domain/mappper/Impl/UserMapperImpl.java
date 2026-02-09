@@ -3,6 +3,7 @@ package com._labor.fakecord.domain.mappper.Impl;
 import org.springframework.stereotype.Component;
 
 import com._labor.fakecord.domain.dto.UserDto;
+import com._labor.fakecord.domain.entity.EmailIdentity;
 import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.domain.mappper.UserMapper;
 
@@ -24,19 +25,22 @@ public class UserMapperImpl implements UserMapper {
   public UserDto toDto(User user) {
     if (user == null) return null;
 
-    String primaryEmail = null;
+    EmailIdentity primaryIdentity = null;
     if (user.getEmailIdentities() != null) {
-      primaryEmail = user.getEmailIdentities().stream()
-        .filter(identity -> identity.isPrimary())
-        .map(identity -> identity.getEmail())
+      primaryIdentity = user.getEmailIdentities().stream()
+        .filter(EmailIdentity::isPrimary)
         .findFirst()
         .orElse(null);
     }
 
+    String email = (primaryIdentity != null) ? primaryIdentity.getEmail() : null;
+    boolean isVerified = (primaryIdentity != null) && primaryIdentity.isVerified();
+
     return new UserDto(
       user.getId(),
       user.getName(),
-      primaryEmail
+      email,
+      isVerified
     );
   }
 }
