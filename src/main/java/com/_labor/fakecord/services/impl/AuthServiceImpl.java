@@ -28,6 +28,7 @@ import com._labor.fakecord.repository.AccountRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.security.JwtCore;
 import com._labor.fakecord.services.AuthService;
+import com._labor.fakecord.services.EmailVerificationService;
 import com._labor.fakecord.services.IdentityService;
 import com._labor.fakecord.services.UserAuthenticatorService;
 import com._labor.fakecord.services.VerificationTokenService;
@@ -48,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
   private final VerificationTokenService verificationTokenService;
   private final IdentityService identityService;
   private final OutboxService outboxService;
+  private final EmailVerificationService emailVerificationService;
 
   public AuthServiceImpl(
       AccountRepository repository, 
@@ -58,7 +60,8 @@ public class AuthServiceImpl implements AuthService {
       UserAuthenticatorService userAuthenticatorService,
       VerificationTokenService verificationTokenService,
       IdentityService identityService,
-      OutboxService outboxService
+      OutboxService outboxService,
+      EmailVerificationService emailVerificationService
     ) {
     this.repository = repository;
     this.passwordEncoder = passwordEncoder;
@@ -69,6 +72,7 @@ public class AuthServiceImpl implements AuthService {
     this.verificationTokenService = verificationTokenService;
     this.identityService = identityService;
     this.outboxService = outboxService;
+    this.emailVerificationService = emailVerificationService;
   }
 
 
@@ -109,6 +113,8 @@ public class AuthServiceImpl implements AuthService {
     outboxService.publish(
       user.getId(), OutboxEventType.USER_REGISTERED, payload
     );
+
+    emailVerificationService.sendConfirmationRequest(user, request.email());
 
     return AuthResponse.builder()
       .token(token)
