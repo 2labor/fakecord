@@ -10,4 +10,5 @@ import com._labor.fakecord.domain.entity.ChatMessage;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {
   Page<ChatMessage> findAll(Pageable pageable);
+  void deleteByUserId(UUID userId);
 }

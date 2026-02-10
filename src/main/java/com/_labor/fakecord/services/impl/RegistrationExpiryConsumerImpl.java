@@ -10,6 +10,7 @@ import com._labor.fakecord.domain.entity.EmailIdentity;
 import com._labor.fakecord.repository.EmailIdentityRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.RegistrationExpiryConsumer;
+import com._labor.fakecord.services.UserCleanupService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -21,16 +22,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RegistrationExpiryConsumerImpl implements RegistrationExpiryConsumer {
 
-  private final UserRepository userRepository;
+  private final UserCleanupService userCleanupService;
   private final EmailIdentityRepository emailIdentityRepository;
   private final ObjectMapper mapper;
 
   public RegistrationExpiryConsumerImpl(
-    UserRepository userRepository,
+    UserCleanupService userCleanupService,
     EmailIdentityRepository emailIdentityRepository,
     ObjectMapper mapper
   ) {
-    this.userRepository = userRepository;
+    this.userCleanupService = userCleanupService;
     this.emailIdentityRepository = emailIdentityRepository;
     this.mapper = mapper;
   }
@@ -51,7 +52,7 @@ public class RegistrationExpiryConsumerImpl implements RegistrationExpiryConsume
             if (identity.isVerified()) {
               log.info("User {} confirmed email. Deletion aborted.", userId);
             } else {
-              executeHardDelete(userId);
+              userCleanupService.scrubUnverifiedUser(userId);
             }
           },
           () -> log.warn("No identity found for user {}. Likely already deleted.", userId)
@@ -61,13 +62,4 @@ public class RegistrationExpiryConsumerImpl implements RegistrationExpiryConsume
       throw new RuntimeException(e);
     }
   }
-  
- private void executeHardDelete(UUID userId) {
-    log.warn("Hard Delete Triggered for: {}", userId);
-    userRepository.findById(userId).ifPresent(user -> {
-        userRepository.delete(user);
-        userRepository.flush(); 
-        log.info("SQL DELETE command sent to database for user {}", userId);
-    });
-}
 }

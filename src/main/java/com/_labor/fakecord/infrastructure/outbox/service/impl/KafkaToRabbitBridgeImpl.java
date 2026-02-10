@@ -40,7 +40,7 @@ public class KafkaToRabbitBridgeImpl implements EventBridge {
       );
       log.info("Bridge Implementation: Message sent to RabbitMQ exchange");
      } catch (Exception e) {
-        log.error("❌ Bridge Implementation: Error during message forwarding", e);
+        log.error("Bridge Implementation: Error during message forwarding", e);
         throw e;
      }
   }

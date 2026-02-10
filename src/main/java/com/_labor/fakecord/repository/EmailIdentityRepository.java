@@ -14,4 +14,5 @@ public interface EmailIdentityRepository extends JpaRepository<EmailIdentity, UU
   boolean existsByEmail(String email);
   Optional<EmailIdentity> findByUserAndIsPrimary(User user, boolean status);
   Optional<EmailIdentity> findByUserIdAndIsPrimary(UUID userId, boolean status);
+  void deleteByUserId(UUID userId);
 }

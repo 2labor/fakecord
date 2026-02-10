@@ -12,4 +12,5 @@ public interface UserAuthenticatorRepository extends JpaRepository<UserAuthentic
   List<UserAuthenticator> findAllByUserIdAndIsActiveTrue(UUID userId);
   void deleteByUserIdAndType(UUID userId, AuthMethodType type);
   boolean existsByUserIdAndIsActiveTrue(UUID userId);
+  void deleteByUserId(UUID userId);
 }
