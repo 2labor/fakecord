@@ -43,7 +43,7 @@ public class SmtpMailService implements MailService {
     try {
       Context context = new Context();
       context.setVariable("username", username);
-      context.setVariable("confirmUrl", "http://192.168.8.172:8080/api/auth/verify/email?token=" + token);
+      context.setVariable("confirmUrl", "http://localhost:8080/api/auth/verify/email?token=" + token);
       String htmlContent = templateEngine.process("email/verification", context);
 
       MimeMessage mimeMessage = mailSender.createMimeMessage();
