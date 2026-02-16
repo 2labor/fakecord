@@ -1,4 +1,4 @@
-package com._labor.fakecord.controller;
+package com._labor.fakecord.exception;
 
 import java.util.HashMap;
 import java.util.Map;
