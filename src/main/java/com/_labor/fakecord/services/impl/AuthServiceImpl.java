@@ -31,6 +31,7 @@ import com._labor.fakecord.services.AuthService;
 import com._labor.fakecord.services.EmailVerificationService;
 import com._labor.fakecord.services.IdentityService;
 import com._labor.fakecord.services.UserAuthenticatorService;
+import com._labor.fakecord.services.UserProfileServices;
 import com._labor.fakecord.services.VerificationTokenService;
 
 import jakarta.transaction.Transactional;
@@ -50,6 +51,7 @@ public class AuthServiceImpl implements AuthService {
   private final IdentityService identityService;
   private final OutboxService outboxService;
   private final EmailVerificationService emailVerificationService;
+  private final UserProfileServices userProfileServices;
 
   public AuthServiceImpl(
       AccountRepository repository, 
@@ -61,7 +63,8 @@ public class AuthServiceImpl implements AuthService {
       VerificationTokenService verificationTokenService,
       IdentityService identityService,
       OutboxService outboxService,
-      EmailVerificationService emailVerificationService
+      EmailVerificationService emailVerificationService,
+      UserProfileServices userProfileServices
     ) {
     this.repository = repository;
     this.passwordEncoder = passwordEncoder;
@@ -73,6 +76,7 @@ public class AuthServiceImpl implements AuthService {
     this.identityService = identityService;
     this.outboxService = outboxService;
     this.emailVerificationService = emailVerificationService;
+    this.userProfileServices = userProfileServices;
   }
 
 
@@ -90,6 +94,8 @@ public class AuthServiceImpl implements AuthService {
       newUser.setName(request.userName());
       return userRepository.save(newUser);
     });
+
+    userProfileServices.createDefaultProfile(user, request.userName());
 
     identityService.linkEmailToUser(user, request.email(), AuthProvider.LOCAL, false, true);
 

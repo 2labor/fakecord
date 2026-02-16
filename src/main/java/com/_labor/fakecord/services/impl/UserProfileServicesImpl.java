@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com._labor.fakecord.domain.dto.UserProfileFullDto;
 import com._labor.fakecord.domain.dto.UserProfileUpdateDto;
 import com._labor.fakecord.domain.dto.UserStatus;
+import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.domain.entity.UserProfile;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.exception.ProfileNotFoundException;
@@ -45,6 +46,14 @@ public class UserProfileServicesImpl implements UserProfileServices{
     mapper.toUpdateDtp(updateDto, profile);
 
     return mapper.toFullDto(profile, UserStatus.OFFLINE);
+  }
+
+  @Override
+  public void createDefaultProfile(User user, String displayName) {
+    UserProfile profile = new UserProfile();
+    profile.setUser(user);
+    profile.setDisplayName(displayName);
+    repository.save(profile);
   }
   
 }
