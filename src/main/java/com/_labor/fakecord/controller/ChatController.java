@@ -1,5 +1,7 @@
 package com._labor.fakecord.controller;
 
+import java.security.Principal;
+
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -29,14 +31,10 @@ public class ChatController {
 
   @MessageMapping("/chat.send") // parse message from front-end that was sended on "/app/chat.send"
   @SendTo("/topic/public") // push message to all subscribers of canal "/topic/public"
-  public ChatMessageDto sendMessage(@Payload @Valid ChatMessageDto dto) {
+  public ChatMessageDto sendMessage(@Payload @Valid ChatMessageDto dto, Principal principal) {
     ChatMessage message = chatMapper.fromDto(dto);
 
-    if (message.getType() == MessageType.SEND) {
-        message = service.createMessage(message); 
-    }
-
-    return chatMapper.toDto(message);
+    return service.createMessage(message, principal.getName());
   }
 
   @MessageExceptionHandler(MethodArgumentNotValidException.class)

@@ -69,6 +69,7 @@ public class SecurityConfig {
             .requestMatchers("/mfa-verify", "/api/auth/mfa/verify-totp").permitAll()
             .requestMatchers("/api/auth/verify", "/api/auth/mfa/backup/verify").permitAll()
             .requestMatchers("/api/auth/**", "/login/**", "/oauth2/**").permitAll()
+            .requestMatchers("/api/profiles/**").authenticated()
             .requestMatchers("/auth/reset").permitAll()
             .anyRequest().authenticated())
         .oauth2Login(oauth2 -> oauth2
@@ -106,7 +107,7 @@ public class SecurityConfig {
     CorsConfiguration configuration = new CorsConfiguration();
 
     configuration.setAllowedOrigins(Arrays.asList("http://localhost:8080", "http://localhost:5173"));
-    configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
     configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Set-Cookie"));
     configuration.setAllowCredentials(true);
 
