@@ -2,6 +2,7 @@ package com._labor.fakecord.security.oauth2;
 
 import java.io.IOException;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -24,13 +25,17 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
   private final RefreshTokenService refreshTokenService;
   private final UserAuthenticatorRepository authenticatorRepository;
   private final VerificationTokenService verificationTokenService;
-
+  
+  @Value("${app.frontend-url:http://localhost:5173}")
+  private String frontendUrl;
+  
   public OAuth2SuccessHandler(JwtCore jwtCore, RefreshTokenService refreshTokenService, UserAuthenticatorRepository authenticatorRepository, @Lazy VerificationTokenService verificationTokenService) {
     this.jwtCore = jwtCore;
     this.refreshTokenService = refreshTokenService;
     this.authenticatorRepository = authenticatorRepository;
     this.verificationTokenService = verificationTokenService;
   }
+
 
   @Override
 public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
@@ -58,7 +63,7 @@ public void onAuthenticationSuccess(HttpServletRequest request, HttpServletRespo
 
         clearAuthenticationAttributes(request);
         
-        getRedirectStrategy().sendRedirect(request, response, "/");
+        getRedirectStrategy().sendRedirect(request, response, frontendUrl + "/");
         
     } catch (Exception e) {
         e.printStackTrace(); 

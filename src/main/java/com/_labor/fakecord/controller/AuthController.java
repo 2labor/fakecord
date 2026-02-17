@@ -268,4 +268,25 @@ public ResponseEntity<?> getMfaStatus() {
     userAuthenticatorService.disableMethod(userId, AuthMethodType.TOTP);
     return ResponseEntity.ok("MFA disabled");
   }
+
+  @PostMapping("/logout/everywhere")
+  public ResponseEntity<?> logoutEverywhere() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+    if (null == auth || auth instanceof AnonymousAuthenticationToken) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
+    }
+
+    UUID userId = UUID.fromString(auth.getName());
+    
+    service.logoutEverywhere(userId);
+
+    ResponseCookie deleteAccess = jwtCore.deleteAccessTokenCookie();
+    ResponseCookie deleteRefresh = jwtCore.deleteRefreshTokenCookie();
+
+    return ResponseEntity.ok()
+      .header(HttpHeaders.SET_COOKIE, deleteAccess.toString())
+      .header(HttpHeaders.SET_COOKIE, deleteRefresh.toString())
+      .body("Logged out from all devices successfully. All existing tokens are now invalid.");
+  }
 }

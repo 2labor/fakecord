@@ -25,7 +25,7 @@ public class PasswordResetListener {
     log.debug("Listener caught PasswordResetRequestedEvent for {}", event.getEmail());
 
     String subject = "Fakecord: Password Reset Request";
-    String resetUrl = "http://localhost:8080/?token=" + event.getToken();
+    String resetUrl = "http://localhost:5173/?token=" + event.getToken();
     String message = "To reset your password, click the link: " + resetUrl;
 
     mailService.sendMain(event.getEmail(), subject, message);

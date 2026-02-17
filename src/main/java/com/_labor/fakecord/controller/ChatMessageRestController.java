@@ -38,9 +38,6 @@ public class ChatMessageRestController {
   ) {
     Pageable pageable = PageRequest.of(page, limit, Sort.by("createdAt").descending());
 
-    return services.getMessagesPage(pageable)
-      .stream()
-      .map(mapper::toDto)
-      .collect(Collectors.toList());
+    return services.getMessagesPage(pageable);
   }
 }

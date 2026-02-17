@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com._labor.fakecord.domain.entity.MessageType;
+import com._labor.fakecord.domain.entity.UserProfile;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -16,6 +17,6 @@ public record ChatMessageDto (
   String content,
   MessageType type,
   @Valid
-  UserDto userDto,
+  UserProfileShort author,
   LocalDateTime timestamp
 ) {}

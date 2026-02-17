@@ -346,8 +346,6 @@
             <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">Enter your email to receive a
                 reset link.</p>
             <div id="forgot-error" class="error-box"></div>
-            <input type="email" id="reset-email" placeholder="Email">
-            <button onclick="submitResetRequest()">Send Link</button>
             <a class="link-alt" onclick="location.reload()">Back to login</a>
         </div>
 
@@ -388,6 +386,7 @@
             <button onclick="sendMessage()" style="width: 80px;">Send</button>
             <button id="btn-mfa-setup" onclick="openMfaSetup()" style="width: 110px; background: var(--warning); display: none;">2FA Setup</button>
             <button id="btn-mfa-disable" onclick="disableMfaPrompt()" style="width: 110px; background: var(--danger); display: none;">Disable 2FA</button>
+            <button onclick="logoutEverywhere()" style="width: 140px; background: #ed4245; font-size: 0.8rem;">Logout Everywhere</button>
             <button onclick="logout()" style="width: 70px; background: var(--danger);">Exit</button>
         </div>
     </div>
@@ -805,6 +804,30 @@
         function logout() {
             if (stompClient) stompClient.disconnect(); 
             fetch('/api/auth/logout', { method: 'POST' }).finally(() => location.reload());
+        }
+        async function logoutEverywhere() {
+            if (!confirm("Are you sure? This will invalidate ALL your sessions on all devices.")) {
+                return;
+            }
+
+            try {
+                if (stompClient) stompClient.disconnect();
+
+                const res = await fetch('/api/auth/logout/everywhere', {
+                    method: 'POST'
+                });
+
+                if (res.ok) {
+                    alert("All sessions terminated.");
+                    location.reload();
+                } else {
+                    const err = await res.text();
+                    alert("Error: " + err);
+                }
+            } catch (e) {
+                console.error("Logout failed", e);
+                location.reload()
+            }
         }
 
         function downloadBackupCodes() {

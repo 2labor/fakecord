@@ -14,6 +14,7 @@ import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.repository.SocialAccountRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.IdentityService;
+import com._labor.fakecord.services.UserProfileServices;
 
 import jakarta.transaction.Transactional;
 
@@ -23,12 +24,19 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
   private final UserRepository userRepository;
   private final SocialAccountRepository socialAccountRepository;
   private final IdentityService identityService;
+  private final UserProfileServices userProfileServices;
 
 
-  public CustomOAuth2UserService(UserRepository userRepository, SocialAccountRepository socialAccountRepository, IdentityService identityService) {
+  public CustomOAuth2UserService(
+    UserRepository userRepository, 
+    SocialAccountRepository socialAccountRepository, 
+    IdentityService identityService,
+    UserProfileServices userProfileServices
+  ) {
     this.userRepository = userRepository;
     this.socialAccountRepository = socialAccountRepository;
     this.identityService = identityService;
+    this.userProfileServices = userProfileServices;
   }
 
   @Transactional
@@ -72,6 +80,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
           newUser.setName(name);
           newUser = userRepository.save(newUser);
           
+          userProfileServices.createDefaultProfile(newUser, name);
+
           identityService.linkEmailToUser(newUser, email, provider, true, true);
           return newUser;
       });
