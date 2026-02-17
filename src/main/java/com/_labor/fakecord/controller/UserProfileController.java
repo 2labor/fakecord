@@ -5,10 +5,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.dto.UserProfileFullDto;
 import com._labor.fakecord.domain.dto.UserProfileUpdateDto;
+import com._labor.fakecord.security.ratelimit.RateLimitSource;
+import com._labor.fakecord.security.ratelimit.annotation.RateLimited;
 import com._labor.fakecord.services.UserProfileServices;
 
 import jakarta.validation.Valid;
 
+import java.security.Principal;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -32,11 +35,19 @@ public class UserProfileController {
     return ResponseEntity.ok(service.getById(userId));
   }
 
-  @PatchMapping("/{userId}")
+  @PatchMapping("/me")
+  @RateLimited(
+    key = "update_profile",
+    capacity = 2,
+    refillSeconds = 180,
+    source = RateLimitSource.JSON_BODY
+  )
   public ResponseEntity<UserProfileFullDto> updateProfile(
-    @PathVariable UUID userId,
-    @Valid @RequestBody UserProfileUpdateDto updateDto
+    @Valid @RequestBody UserProfileUpdateDto updateDto,
+    Principal principal
   ) {
+    UUID userId = UUID.fromString(principal.getName());
+
     return ResponseEntity.ok(service.update(userId, updateDto));
   }
 }
