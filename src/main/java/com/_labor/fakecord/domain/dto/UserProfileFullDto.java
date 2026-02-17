@@ -12,5 +12,10 @@ public record UserProfileFullDto(
   String avatarUrl,
   String bannerUrl,
   Object metadata,
-  UserStatus status
-) {}
+  UserStatus status,
+  boolean isGhost
+) {
+  public static class UserProfileFullDtoBuilder {
+        private boolean isGhost = false; 
+    }
+}
