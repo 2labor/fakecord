@@ -55,4 +55,16 @@ public class UserProfileMapperImpl implements UserProfileMapper {
       entity.setBannerUrl(dto.bannerUrl());
     }
   }
+
+  @Override
+  public UserProfileShort toShortDto(UserProfileFullDto full, UserStatus status) {
+    if (null == full) return null;
+
+    return UserProfileShort.builder()
+      .userId(full.userId())
+      .displayName(full.displayName())
+      .avatarUrl(full.avatarUrl())
+      .status(status != null ? status : full.status())
+      .build();
+  }
 }

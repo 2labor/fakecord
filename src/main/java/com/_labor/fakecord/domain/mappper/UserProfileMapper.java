@@ -9,5 +9,6 @@ import com._labor.fakecord.domain.entity.UserProfile;
 public interface UserProfileMapper {
   UserProfileFullDto toFullDto(UserProfile profile, UserStatus status);
   UserProfileShort toShortDto(UserProfile profile, UserStatus status);
+  UserProfileShort toShortDto(UserProfileFullDto full, UserStatus status);
   void toUpdateDtp(UserProfileUpdateDto dto, UserProfile entity);
 }
