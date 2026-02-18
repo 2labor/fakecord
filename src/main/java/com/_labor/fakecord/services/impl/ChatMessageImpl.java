@@ -11,15 +11,20 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.dto.ChatMessageDto;
+import com._labor.fakecord.domain.dto.UserProfileFullDto;
+import com._labor.fakecord.domain.dto.UserProfileShort;
+import com._labor.fakecord.domain.dto.UserStatus;
 import com._labor.fakecord.domain.entity.ChatMessage;
 import com._labor.fakecord.domain.entity.MessageType;
 import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.domain.entity.UserProfile;
 import com._labor.fakecord.domain.mappper.ChatMessageMapper;
+import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.repository.ChatMessageRepository;
 import com._labor.fakecord.repository.UserProfileRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.ChatMessageServices;
+import com._labor.fakecord.services.UserProfileCache;
 
 import jakarta.transaction.Transactional;
 
@@ -28,13 +33,21 @@ public class ChatMessageImpl implements ChatMessageServices {
 
   private final ChatMessageRepository repository;
   private final UserRepository userRepository;
-  private final UserProfileRepository userProfileRepository;
+  private final UserProfileCache cache;
+  private final UserProfileMapper profileMapper;
   private final ChatMessageMapper mapper;
 
-  public ChatMessageImpl(ChatMessageRepository repository, UserRepository userRepository, UserProfileRepository userProfileRepository, ChatMessageMapper mapper) {
+  public ChatMessageImpl(
+    ChatMessageRepository repository, 
+    UserRepository userRepository, 
+    UserProfileCache cache, 
+    UserProfileMapper profileMapper,
+    ChatMessageMapper mapper
+  ) {
     this.repository = repository;
     this.userRepository = userRepository;
-    this.userProfileRepository = userProfileRepository;
+    this.cache = cache;
+    this.profileMapper = profileMapper;
     this.mapper = mapper;
   } 
 
@@ -47,20 +60,20 @@ public class ChatMessageImpl implements ChatMessageServices {
       throw new IllegalArgumentException("Message cannot be empty!");
     }
 
-    User author = userRepository.findById(userId)
-      .orElseThrow(() -> new IllegalArgumentException("User with ID " + userId + " not found!"));
+    User authorProxy = userRepository.getReferenceById(userId);
+    message.setUser(authorProxy);
 
-    message.setUser(author);
     if (message.getType() == null) {
       message.setType(MessageType.SEND);
     }
     
     ChatMessage savedMessage = repository.save(message);
 
-    UserProfile profile = userProfileRepository.findById(userId)
-      .orElse(null);
+    UserProfileFullDto profileFull = cache.getUserProfile(userId);
 
-    return mapper.toDto(savedMessage, profile); 
+    UserProfileShort shortProfile = profileMapper.toShortDto(profileFull, UserStatus.OFFLINE);
+
+    return mapper.toDto(savedMessage, shortProfile); 
   }
 
   @Override
@@ -86,9 +99,15 @@ public class ChatMessageImpl implements ChatMessageServices {
       .map(m -> m.getUser().getId())
       .collect(Collectors.toSet());
 
-    Map<UUID, UserProfile> profiles = userProfileRepository.findAllByUserIdIn(userIds)
-      .stream()
-      .collect(Collectors.toMap(p -> p.getUser().getId(), p -> p));
+    Map<UUID, UserProfileShort> profiles = userIds.stream()
+      .collect(Collectors.toMap(
+        id -> id,
+        id -> {
+          UserProfileFullDto full = cache.getUserProfile(id);
+          return profileMapper.toShortDto(full, UserStatus.OFFLINE);
+        },
+        (existing, replacement) -> existing
+      ));
 
     return massages.stream()
       .map(m -> mapper.toDto(m, profiles.get(m.getUser().getId())))

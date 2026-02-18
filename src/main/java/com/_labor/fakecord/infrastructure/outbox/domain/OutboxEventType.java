@@ -4,4 +4,5 @@ public enum OutboxEventType {
   USER_REGISTERED,
   USER_EMAIL_VERIFIED,
   USER_DELETED,
+  USER_PROFILE_UPDATED
 }

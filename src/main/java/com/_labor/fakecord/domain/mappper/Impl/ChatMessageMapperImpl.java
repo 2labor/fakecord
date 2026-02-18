@@ -32,7 +32,7 @@ public class ChatMessageMapperImpl implements ChatMessageMapper {
   }
 
   @Override
-  public ChatMessageDto toDto(ChatMessage message, UserProfile profile) {
+  public ChatMessageDto toDto(ChatMessage message, UserProfileShort authorDto) {
 
     if (null == message) return null;
 
@@ -41,7 +41,7 @@ public class ChatMessageMapperImpl implements ChatMessageMapper {
       message.getId(),
       message.getContent(),
       message.getType(),
-      profileMapper.toShortDto(profile, UserStatus.OFFLINE),
+      authorDto,
       message.getCreatedAt()
     );
   }
