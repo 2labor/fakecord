@@ -6,9 +6,11 @@ import java.util.List;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import com._labor.fakecord.infrastructure.outbox.domain.CacheEvictEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.EventStatus;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEvent;
 import com._labor.fakecord.infrastructure.outbox.repository.OutboxRepository;
+import com._labor.fakecord.infrastructure.outbox.service.EventPublisher;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxRelay;
 
 
@@ -23,15 +25,18 @@ public class OutboxRelayImpl implements OutboxRelay {
 
   private final OutboxRepository repository;
   private final KafkaTemplate<String, String> kafkaTemplate;
+  private final EventPublisher publisher;
 
-  private static final String TOPIC = "user-registration-events";
+  private static final String KAFKA_TOPIC = "user-registration-events";
 
   public OutboxRelayImpl(
     OutboxRepository repository,
-    KafkaTemplate<String, String> kafkaTemplate
+    KafkaTemplate<String, String> kafkaTemplate,
+    EventPublisher publisher
   ){
     this.repository = repository;
     this.kafkaTemplate = kafkaTemplate;
+    this.publisher = publisher;
   }
 
   @Override
@@ -54,15 +59,18 @@ public class OutboxRelayImpl implements OutboxRelay {
 
   private void processEvent(OutboxEvent event) {
     try {
-      relayToKafka(event);
-      finalizeEvent(event);
+      switch (event.getType()) {
+        case USER_PROFILE_UPDATED -> handleCacheEviction(event);
+                case USER_REGISTERED, USER_EMAIL_VERIFIED, USER_DELETED -> handleBusinessEvent(event);
+        default -> log.warn("Unknown event type: {}", event.getType());
+      }
     } catch (Exception e) {
-      log.error("Failed to process outbox event {}: {}", event.getId(), e.getMessage());
+      log.error("Failed to process outbox event with type {}: {}, {}", event.getId(), event.getType(), e.getMessage());
     }
   }
 
   private void relayToKafka(OutboxEvent event) {
-    kafkaTemplate.send(TOPIC, event.getAggregateId().toString(), event.getPayload())
+    kafkaTemplate.send(KAFKA_TOPIC, event.getAggregateId().toString(), event.getPayload())
       .whenComplete((result, ex) -> {
         if (null != ex) {
           log.error("Unable to send message=[{}] due to : {}", event.getPayload(), ex.getMessage());
@@ -71,6 +79,26 @@ public class OutboxRelayImpl implements OutboxRelay {
         }
       });
   } 
+
+  private void handleCacheEviction(OutboxEvent event) {
+    publisher.publish(
+      new CacheEvictEvent(
+        event.getAggregateId(),
+        "user_profiles",
+        System.currentTimeMillis()
+      ));
+    finalizeEvent(event);
+  }
+
+  private void handleBusinessEvent(OutboxEvent event) {
+    try {
+      kafkaTemplate.send(KAFKA_TOPIC, event.getAggregateId().toString(), event.getPayload())
+        .get();
+      finalizeEvent(event);
+    } catch (Exception e) {
+      throw new RuntimeException("Kafka send failed", e);
+    }
+  }
 
   private void finalizeEvent(OutboxEvent event) {
     event.setStatus(EventStatus.PROCESS);

@@ -12,6 +12,8 @@ import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.domain.entity.UserProfile;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.exception.ProfileNotFoundException;
+import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
+import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.UserProfileRepository;
 import com._labor.fakecord.services.UserProfileCache;
 import com._labor.fakecord.services.UserProfileServices;
@@ -25,11 +27,13 @@ public class UserProfileServicesImpl implements UserProfileServices{
   private final UserProfileMapper mapper;
   private final UserProfileRepository repository;
   private final UserProfileCache cache;
+  private final OutboxService outboxService;
 
-  public UserProfileServicesImpl(UserProfileMapper mapper, UserProfileRepository repository, UserProfileCache cache) {
+  public UserProfileServicesImpl(UserProfileMapper mapper, UserProfileRepository repository, UserProfileCache cache, OutboxService outboxService) {
     this.mapper = mapper;
     this.repository = repository;
     this.cache = cache;
+    this.outboxService = outboxService;
   }
   
   @Override
@@ -45,10 +49,15 @@ public class UserProfileServicesImpl implements UserProfileServices{
       .orElseThrow(() -> new ProfileNotFoundException(userId));
     
     mapper.toUpdateDtp(updateDto, profile);
-
     UserProfile savedProfile = repository.save(profile);
 
-    cache.evict(userId);
+    outboxService.publish(
+      userId, 
+      OutboxEventType.USER_PROFILE_UPDATED, 
+      "{}"
+    );
+
+    log.info("Profile updated and outbox event published for user: {}", userId);
 
     return mapper.toFullDto(profile, UserStatus.OFFLINE);
   }
