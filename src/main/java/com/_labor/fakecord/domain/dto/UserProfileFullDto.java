@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import lombok.Builder;
 
-@Builder
+@Builder(toBuilder = true)
 public record UserProfileFullDto(
   UUID userId,
   String displayName,
