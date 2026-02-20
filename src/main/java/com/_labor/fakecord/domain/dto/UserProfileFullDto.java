@@ -16,6 +16,6 @@ public record UserProfileFullDto(
   boolean isGhost
 ) {
   public static class UserProfileFullDtoBuilder {
-        private boolean isGhost = false; 
-    }
+    private boolean isGhost = false; 
+  }
 }
