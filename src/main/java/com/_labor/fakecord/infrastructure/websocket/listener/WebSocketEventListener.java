@@ -2,6 +2,7 @@ package com._labor.fakecord.infrastructure.websocket.listener;
 
 import java.util.UUID;
 
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
@@ -21,6 +22,7 @@ public class WebSocketEventListener {
     this.statusService = statusService;
   }
 
+  @EventListener
   public void handleWebSocketConnectListener(SessionConnectEvent event) {
     StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
     String userId = getUserId(accessor);
@@ -31,6 +33,7 @@ public class WebSocketEventListener {
     }
   }
 
+  @EventListener
   public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
     StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
     String userId = getUserId(accessor);
