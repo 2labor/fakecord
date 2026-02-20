@@ -11,6 +11,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+import com._labor.fakecord.interceptor.PresenceInterceptor;
 import com._labor.fakecord.interceptor.RateLimitInterceptor;
 import com._labor.fakecord.interceptor.ValidationInterceptor;
 import com._labor.fakecord.interceptor.WebSocketTokenFilter;
@@ -28,9 +29,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
   @Autowired
   private RateLimitInterceptor rateLimitInterceptor;
 
+  @Autowired
+  private PresenceInterceptor presenceInterceptor;
+
   @Override
   public void configureClientInboundChannel(ChannelRegistration registration) {
-    registration.interceptors(tokenFilter, rateLimitInterceptor, validator);
+    registration.interceptors(tokenFilter, presenceInterceptor, rateLimitInterceptor, validator);
   }
 
   @Override 

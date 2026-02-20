@@ -51,15 +51,17 @@ public class UserProfileServicesImpl implements UserProfileServices{
     mapper.toUpdateDtp(updateDto, profile);
     UserProfile savedProfile = repository.save(profile);
 
+    cache.evict(userId);
+
     outboxService.publish(
       userId, 
       OutboxEventType.USER_PROFILE_UPDATED, 
       "{}"
     );
 
-    log.info("Profile updated and outbox event published for user: {}", userId);
+    log.info("Profile updated and outbox event published for user: {}", userId);  
 
-    return mapper.toFullDto(profile, UserStatus.OFFLINE);
+    return cache.getUserProfile(userId);
   }
 
   @Override

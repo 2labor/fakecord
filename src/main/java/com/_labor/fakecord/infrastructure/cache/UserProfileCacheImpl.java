@@ -13,6 +13,7 @@ import com._labor.fakecord.domain.entity.UserProfile;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.repository.UserProfileRepository;
 import com._labor.fakecord.services.UserProfileCache;
+import com._labor.fakecord.services.UserStatusService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -25,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 public class UserProfileCacheImpl implements UserProfileCache {
 
   private final UserProfileRepository repository;
+  private final UserStatusService statusService;
   private final StringRedisTemplate redisTemplate;
   private final ObjectMapper objectMapper;
   private final UserProfileMapper mapper;
@@ -36,8 +38,9 @@ public class UserProfileCacheImpl implements UserProfileCache {
   private static final String REDIS_PREFIX = "profile:v1:";
   private static final Duration REDIS_TTL = Duration.ofHours(24);
 
-  public UserProfileCacheImpl(UserProfileRepository repository, StringRedisTemplate redisTemplate, ObjectMapper objectMapper, UserProfileMapper mapper) {
+  public UserProfileCacheImpl(UserProfileRepository repository, StringRedisTemplate redisTemplate, ObjectMapper objectMapper, UserProfileMapper mapper, UserStatusService statusService) {
     this.repository = repository;
+    this.statusService = statusService;
     this.redisTemplate = redisTemplate;
     this.objectMapper = objectMapper;
     this.mapper = mapper;
@@ -45,20 +48,26 @@ public class UserProfileCacheImpl implements UserProfileCache {
 
   @Override
   public UserProfileFullDto getUserProfile(UUID userId) {
-    return localCache.get(userId, id -> {
-      log.debug("L1 Cache miss for user {}", id);
+    UserProfileFullDto staticProfile = localCache.get(userId, id -> {
+        log.debug("L1 Cache miss for user {}", id);
 
-      UserProfileFullDto cache = getFromRedis(userId);
-      if (null != cache) return cache;
+        UserProfileFullDto cachedInRedis = getFromRedis(id);
+        if (null != cachedInRedis) return cachedInRedis;
 
-      log.info("L2 Cache miss for user {}. Fetching from DB", id);
-      UserProfileFullDto dbProfile = repository.findById(userId)
-        .map(entity -> mapper.toFullDto(entity, UserStatus.OFFLINE))
-        .orElseGet(() -> createNegativeProfile(userId));
+        log.info("L2 Cache miss for user {}. Fetching from DB", id);
+        UserProfileFullDto dbProfile = repository.findById(id)
+            .map(entity -> mapper.toFullDto(entity, UserStatus.OFFLINE))
+            .orElseGet(() -> createNegativeProfile(id));
 
-      saveToRedis(userId, dbProfile);
-      return dbProfile;
+        saveToRedis(id, dbProfile);
+        return dbProfile;
     });
+
+    boolean isOnline = statusService.isOnline(userId);
+
+    return staticProfile.toBuilder()
+      .status(isOnline ? UserStatus.ONLINE : UserStatus.OFFLINE)
+      .build();
   }
 
   @Override

@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import lombok.Builder;
 
-@Builder
+@Builder(toBuilder = true)
 public record UserProfileFullDto(
   UUID userId,
   String displayName,
@@ -16,6 +16,6 @@ public record UserProfileFullDto(
   boolean isGhost
 ) {
   public static class UserProfileFullDtoBuilder {
-        private boolean isGhost = false; 
-    }
+    private boolean isGhost = false; 
+  }
 }

@@ -40,10 +40,10 @@ public class UserProfile {
   @Column(name = "user_name", nullable = false, length = 32)
   private String displayName;
 
-  @Column(name = "avatar_url")
+  @Column(name = "avatar_url", length = 2048)
   private String avatarUrl;
 
-  @Column(name = "banner_url")
+  @Column(name = "banner_url", length = 2048)
   private String bannerUrl;
 
   @Column(name = "bio", length = 254)
