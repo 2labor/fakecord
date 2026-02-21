@@ -22,8 +22,10 @@ public class UserProfileMapperImpl implements UserProfileMapper {
       .bio(profile.getBio())
       .avatarUrl(profile.getAvatarUrl())
       .bannerUrl(profile.getBannerUrl())
+      .uploadUrl(null) 
       .metadata(profile.getMetadata())
       .status(status != null ? status : UserStatus.OFFLINE)
+      .isGhost(false)
       .build();
   }
 
@@ -47,12 +49,6 @@ public class UserProfileMapperImpl implements UserProfileMapper {
     }
     if (null != dto.bio()) {
       entity.setBio(dto.bio());
-    }
-    if (null != dto.avatarUrl()) {
-      entity.setAvatarUrl(dto.avatarUrl());
-    }
-    if (null != dto.bannerUrl()) {
-      entity.setBannerUrl(dto.bannerUrl());
     }
   }
 
