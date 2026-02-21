@@ -5,8 +5,8 @@ import org.springframework.stereotype.Component;
 import com._labor.fakecord.domain.dto.UserProfileFullDto;
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.dto.UserProfileUpdateDto;
-import com._labor.fakecord.domain.dto.UserStatus;
 import com._labor.fakecord.domain.entity.UserProfile;
+import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
 
 @Component
@@ -25,6 +25,7 @@ public class UserProfileMapperImpl implements UserProfileMapper {
       .uploadUrl(null) 
       .metadata(profile.getMetadata())
       .status(status != null ? status : UserStatus.OFFLINE)
+      .statusPreference(profile.getStatusPreference())
       .isGhost(false)
       .build();
   }
@@ -42,13 +43,16 @@ public class UserProfileMapperImpl implements UserProfileMapper {
   }
 
   @Override
-  public void toUpdateDtp(UserProfileUpdateDto dto, UserProfile entity) {
+  public void toUpdateDto(UserProfileUpdateDto dto, UserProfile entity) {
     if (null == dto) return;
     if (null != dto.displayName()) {
       entity.setDisplayName(dto.displayName());
     }
     if (null != dto.bio()) {
       entity.setBio(dto.bio());
+    }
+    if (null != dto.statusPreference()) {
+      entity.setStatusPreference(dto.statusPreference());
     }
   }
 

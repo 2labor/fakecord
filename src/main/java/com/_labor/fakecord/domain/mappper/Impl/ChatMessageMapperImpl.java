@@ -4,9 +4,9 @@ import org.springframework.stereotype.Component;
 
 import com._labor.fakecord.domain.dto.ChatMessageDto;
 import com._labor.fakecord.domain.dto.UserProfileShort;
-import com._labor.fakecord.domain.dto.UserStatus;
 import com._labor.fakecord.domain.entity.ChatMessage;
 import com._labor.fakecord.domain.entity.UserProfile;
+import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.mappper.ChatMessageMapper;
 import com._labor.fakecord.domain.mappper.UserMapper;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;

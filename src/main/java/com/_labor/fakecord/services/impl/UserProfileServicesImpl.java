@@ -7,9 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com._labor.fakecord.domain.dto.UserProfileFullDto;
 import com._labor.fakecord.domain.dto.UserProfileUpdateDto;
-import com._labor.fakecord.domain.dto.UserStatus;
 import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.domain.entity.UserProfile;
+import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.exception.ProfileNotFoundException;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
@@ -48,7 +48,7 @@ public class UserProfileServicesImpl implements UserProfileServices{
     UserProfile profile = repository.findById(userId)
       .orElseThrow(() -> new ProfileNotFoundException(userId));
     
-    mapper.toUpdateDtp(updateDto, profile);
+    mapper.toUpdateDto(updateDto, profile);
     UserProfile savedProfile = repository.save(profile);
 
     cache.evict(userId);

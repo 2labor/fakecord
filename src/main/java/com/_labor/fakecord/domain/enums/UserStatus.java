@@ -1,4 +1,4 @@
-package com._labor.fakecord.domain.dto;
+package com._labor.fakecord.domain.enums;
 
 import lombok.Getter;
 

@@ -5,11 +5,12 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.access.method.P;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.dto.UserProfileFullDto;
-import com._labor.fakecord.domain.dto.UserStatus;
 import com._labor.fakecord.domain.entity.UserProfile;
+import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
 import com._labor.fakecord.repository.UserProfileRepository;
 import com._labor.fakecord.services.UserProfileCache;
@@ -49,25 +50,32 @@ public class UserProfileCacheImpl implements UserProfileCache {
   @Override
   public UserProfileFullDto getUserProfile(UUID userId) {
     UserProfileFullDto staticProfile = localCache.get(userId, id -> {
-        log.debug("L1 Cache miss for user {}", id);
+      log.debug("L1 Cache miss for user {}", id);
 
-        UserProfileFullDto cachedInRedis = getFromRedis(id);
-        if (null != cachedInRedis) return cachedInRedis;
+      UserProfileFullDto cachedInRedis = getFromRedis(id);
+      if (null != cachedInRedis) return cachedInRedis;
 
-        log.info("L2 Cache miss for user {}. Fetching from DB", id);
-        UserProfileFullDto dbProfile = repository.findById(id)
-            .map(entity -> mapper.toFullDto(entity, UserStatus.OFFLINE))
-            .orElseGet(() -> createNegativeProfile(id));
+      log.info("L2 Cache miss for user {}. Fetching from DB", id);
+      UserProfileFullDto dbProfile = repository.findById(id)
+          .map(entity -> mapper.toFullDto(entity, UserStatus.OFFLINE))
+          .orElseGet(() -> createNegativeProfile(id));
 
-        saveToRedis(id, dbProfile);
-        return dbProfile;
+      saveToRedis(id, dbProfile);
+      return dbProfile;
     });
 
-    boolean isOnline = statusService.isOnline(userId);
+  boolean isOnline = statusService.isOnline(userId);
 
-    return staticProfile.toBuilder()
-      .status(isOnline ? UserStatus.ONLINE : UserStatus.OFFLINE)
-      .build();
+  UserStatus effective = calculateEffective(isOnline, staticProfile.statusPreference());
+
+  UserStatus maskedPreference = (effective == UserStatus.OFFLINE) 
+    ? UserStatus.OFFLINE 
+    : staticProfile.statusPreference();
+
+  return staticProfile.toBuilder() 
+    .status(effective)
+    .statusPreference(maskedPreference)
+    .build();
   }
 
   @Override
@@ -77,6 +85,18 @@ public class UserProfileCacheImpl implements UserProfileCache {
     redisTemplate.delete(REDIS_PREFIX + userId);
   }
   
+  private UserStatus calculateEffective(boolean isOnline, UserStatus preference) {
+    if (!isOnline) {
+      return UserStatus.OFFLINE;
+    }
+
+    if (preference == UserStatus.INVISIBLE) {
+      return UserStatus.OFFLINE;
+    }
+
+    return (null != preference) ? preference : UserStatus.ONLINE;
+  }
+
   private UserProfileFullDto getFromRedis(UUID userId) {
     try {
       String json = redisTemplate.opsForValue().get(REDIS_PREFIX + userId);

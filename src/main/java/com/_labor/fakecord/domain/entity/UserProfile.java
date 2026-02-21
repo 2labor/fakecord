@@ -7,8 +7,12 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
+import com._labor.fakecord.domain.enums.UserStatus;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -48,6 +52,10 @@ public class UserProfile {
 
   @Column(name = "bio", length = 254)
   private String bio;
+
+  @Column(name = "status")
+  @Enumerated(EnumType.STRING)
+  private UserStatus statusPreference = UserStatus.ONLINE;
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "metadata", columnDefinition = "jsonb")
