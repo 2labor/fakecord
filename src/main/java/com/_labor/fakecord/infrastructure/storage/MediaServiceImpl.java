@@ -7,9 +7,12 @@ import org.springframework.security.access.method.P;
 import org.springframework.security.core.userdetails.UserCache;
 import org.springframework.stereotype.Service;
 
+import com._labor.fakecord.domain.dto.UploadResponse;
 import com._labor.fakecord.domain.entity.UserProfile;
 import com._labor.fakecord.domain.enums.ImageType;
 import com._labor.fakecord.domain.enums.MediaType;
+import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
+import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.UserProfileRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.UserProfileCache;
@@ -24,9 +27,7 @@ public class MediaServiceImpl implements MediaService {
   private final FileStorageService fileStorageService;
   private final UserProfileRepository profileRepository;
   private final UserProfileCache cache;
-
-  private static final long MAX_AVATAR_SIZE = 2 * 1024 * 1024; 
-  private static final long MAX_BANNER_SIZE = 5 * 1024 * 1024;
+  private final OutboxService outboxService;
 
   @Value("${app.s3.endpoint}")
     private String s3Endpoint;
@@ -37,28 +38,28 @@ public class MediaServiceImpl implements MediaService {
   public MediaServiceImpl(
     FileStorageService fileStorageService,
     UserProfileRepository profileRepository,
-    UserProfileCache cache
+    UserProfileCache cache,
+    OutboxService outboxService
   ) {
     this.fileStorageService = fileStorageService;
     this.profileRepository = profileRepository;
     this.cache = cache;
+    this.outboxService = outboxService;
   }
 
   @Override
   @Transactional
-  public String getAvatarUploadUrl(UUID userId, ImageType type) {
+  public UploadResponse getAvatarUploadUrl(UUID userId, ImageType type) {
     return processUploadUrl(userId, type, MediaType.AVATAR);
   }
 
   @Override
   @Transactional
-  public String getBannerUploadUrl(UUID userId, ImageType type) {
+  public UploadResponse getBannerUploadUrl(UUID userId, ImageType type) {
     return processUploadUrl(userId, type, MediaType.BANNER);
   }
 
-  private String processUploadUrl(UUID userId, ImageType imageType, MediaType mediaType) {
-
-    long limit = (mediaType == MediaType.AVATAR) ? MAX_AVATAR_SIZE : MAX_BANNER_SIZE;
+  private UploadResponse processUploadUrl(UUID userId, ImageType imageType, MediaType mediaType) {
 
     log.info("Processing {} upload for user: {}", mediaType, userId);
 
@@ -67,9 +68,10 @@ public class MediaServiceImpl implements MediaService {
 
     String objectPath = mediaType.getFolder() + "/" + userId;
 
-    String uploadUrl = fileStorageService.generateUploadUrl(objectPath, imageType.getMimeType(), limit);
+    String uploadUrl = fileStorageService.generateUploadUrl(objectPath, imageType.getMimeType());
 
-    String publicUrl = String.format("%s/%s/%s", s3Endpoint, bucketName, objectPath);
+    String version = String.valueOf(System.currentTimeMillis());
+    String publicUrl = String.format("%s/%s/%s?v=%s", s3Endpoint, bucketName, objectPath, version);
 
     if (mediaType == MediaType.AVATAR) {
       profile.setAvatarUrl(publicUrl);
@@ -77,10 +79,9 @@ public class MediaServiceImpl implements MediaService {
       profile.setBannerUrl(publicUrl);
     }
 
-    profileRepository.save(profile);
-
-    cache.evict(userId);
-
-    return uploadUrl;
+    return UploadResponse.builder()
+      .uploadUrl(uploadUrl)
+      .publicUrl(publicUrl)
+      .build();
   }  
 }

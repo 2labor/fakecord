@@ -1,5 +1,6 @@
 package com._labor.fakecord.controller;
 
+import java.security.Principal;
 import java.util.Map;
 import java.util.UUID;
 
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com._labor.fakecord.domain.dto.UploadResponse;
 import com._labor.fakecord.domain.enums.ImageType;
 import com._labor.fakecord.infrastructure.storage.MediaService;
 
@@ -25,22 +27,20 @@ public class MediaController {
 
 
   @PostMapping("/avatar")
-  public ResponseEntity<Map<String, String>> getAvatarUrl(
-    @AuthenticationPrincipal UUID userId,
+  public ResponseEntity<UploadResponse> getAvatarUrl(
+    Principal principal,
     @RequestParam ImageType type
   ) {
-    String uploadUrl = mediaService.getAvatarUploadUrl(userId, type);
-
-    return ResponseEntity.ok(Map.of("uploadUrl", uploadUrl));
+    UUID userId = UUID.fromString(principal.getName()); 
+    return ResponseEntity.ok(mediaService.getAvatarUploadUrl(userId, type));
   }
 
   @PostMapping("/banner")
-  public ResponseEntity<Map<String, String>> getBannerUrl(
-      @AuthenticationPrincipal UUID userId,
-      @RequestParam ImageType type
+  public ResponseEntity<UploadResponse> getBanner(
+    Principal principal,
+    @RequestParam ImageType type
   ) {
-    String uploadUrl = mediaService.getBannerUploadUrl(userId, type);
-    
-    return ResponseEntity.ok(Map.of("uploadUrl", uploadUrl));
+    UUID userId = UUID.fromString(principal.getName()); 
+    return ResponseEntity.ok(mediaService.getBannerUploadUrl(userId, type));
   }
 }

@@ -28,14 +28,13 @@ public class S3FileStorageServiceImpl implements FileStorageService {
   }
 
   @Override
-  public String generateUploadUrl(String objectPath, String contentType, long maxFileSize) {
+  public String generateUploadUrl(String objectPath, String contentType) {
     log.debug("Generating presigned URL for path: {} [type: {}]", objectPath, contentType);
 
     PutObjectRequest objectRequest = PutObjectRequest.builder()
       .bucket(bucketName)
       .key(objectPath)
       .contentType(contentType)
-      .contentLength(maxFileSize)
       .build();
     
     PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
