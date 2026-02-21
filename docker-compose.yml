@@ -68,6 +68,20 @@ services:
     volumes:
       - rabbit_data:/var/lib/rabbitmq
 
+  minio:
+    image: minio/minio:latest
+    container_name: fakecord-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
 volumes:
   postgres_data:
   rabbit_data:
+  minio_data:

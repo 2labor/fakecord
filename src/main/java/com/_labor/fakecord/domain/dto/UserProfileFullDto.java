@@ -11,6 +11,7 @@ public record UserProfileFullDto(
   String bio,
   String avatarUrl,
   String bannerUrl,
+  String uploadUrl,
   Object metadata,
   UserStatus status,
   boolean isGhost
