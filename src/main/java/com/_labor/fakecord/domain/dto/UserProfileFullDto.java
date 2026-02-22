@@ -2,6 +2,8 @@ package com._labor.fakecord.domain.dto;
 
 import java.util.UUID;
 
+import com._labor.fakecord.domain.enums.UserStatus;
+
 import lombok.Builder;
 
 @Builder(toBuilder = true)
@@ -13,7 +15,8 @@ public record UserProfileFullDto(
   String bannerUrl,
   String uploadUrl,
   Object metadata,
-  UserStatus status,
+  UserStatus status,         
+  UserStatus statusPreference,
   boolean isGhost
 ) {
   public static class UserProfileFullDtoBuilder {

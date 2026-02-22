@@ -109,7 +109,7 @@ public class EmailIdentity {
   }
 
   public void setProvider(AuthProvider provider) {
-    this.provider = provider;
+    this.provider = provider; 
   }
 
   public Instant getCreatedAt() {

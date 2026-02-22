@@ -2,6 +2,8 @@ package com._labor.fakecord.domain.dto;
 
 import java.util.UUID;
 
+import com._labor.fakecord.domain.enums.UserStatus;
+
 import lombok.Builder;
 
 @Builder
