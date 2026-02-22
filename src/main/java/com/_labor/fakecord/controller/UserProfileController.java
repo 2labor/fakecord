@@ -38,7 +38,7 @@ public class UserProfileController {
   @PatchMapping("/me")
   @RateLimited(
     key = "update_profile",
-    capacity = 2,
+    capacity = 100000,
     refillSeconds = 180,
     source = RateLimitSource.JSON_BODY
   )
