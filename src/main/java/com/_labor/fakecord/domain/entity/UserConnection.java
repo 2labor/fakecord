@@ -4,8 +4,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com._labor.fakecord.domain.enums.ConnectionProvider;
+import com._labor.fakecord.infrastructure.persistence.converter.EncryptionConverter;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -51,9 +53,11 @@ public class UserConnection {
   private String externalName;
 
   @Column(name = "access_token", columnDefinition = "TEXT")
+  @Convert(converter = EncryptionConverter.class)
   private String accessToken;
 
   @Column(name = "refresh_token", columnDefinition = "TEXT")
+  @Convert(converter = EncryptionConverter.class)
   private String refreshToken;
 
   @Column(name = "expires_at")
