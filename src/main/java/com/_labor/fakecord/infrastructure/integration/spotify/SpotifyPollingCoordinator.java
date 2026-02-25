@@ -4,6 +4,9 @@ import java.util.UUID;
 
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 import com._labor.fakecord.domain.enums.ConnectionProvider;
@@ -41,14 +44,17 @@ public class SpotifyPollingCoordinator {
   }
 
   @KafkaListener(topics = "user-presence-events", groupId = "polling-presence-group")
-  public void handlePresenceEvent(String userId, String status) {
+  public void handlePresenceEvent(
+    @Header(KafkaHeaders.RECEIVED_KEY) String userId, 
+    @Payload String status
+  ) {
     if (null == userId || null == status) return;
 
     log.debug("Presence change: user {} is now {}", userId, status);
     UUID userUuid = UUID.fromString(userId);
 
     switch (status) {
-      
+
       case "CONNECTED" -> {
         boolean hasSpotify = repository.existsByUserIdAndProvider(userUuid, ConnectionProvider.SPOTIFY);
         if (hasSpotify) {
