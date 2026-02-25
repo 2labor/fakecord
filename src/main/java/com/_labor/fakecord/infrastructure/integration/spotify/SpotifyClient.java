@@ -1,5 +1,7 @@
 package com._labor.fakecord.infrastructure.integration.spotify;
 
+import java.util.Optional;
+
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserter;
@@ -7,6 +9,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com._labor.fakecord.config.properties.SpotifyProperties;
+import com._labor.fakecord.domain.dto.SpotifyCurrentlyPlayingResponse;
 import com._labor.fakecord.domain.dto.SpotifyTokenResponse;
 import com._labor.fakecord.domain.dto.SpotifyUserProfile;
 
@@ -63,5 +66,15 @@ public class SpotifyClient {
       log.error("Failed to refresh Spotify token: {}", e.getMessage());
       throw new RuntimeException("Spotify token refresh failed", e);
     }
+  }
+
+  public Optional<SpotifyCurrentlyPlayingResponse> getCurrentTrack(String accessToken) {
+    log.debug("Fetching currently playing track from Spotify");
+    return webClient.get()
+      .uri("https://api.spotify.com/v1/me/player/currently-playing")
+      .header("Authorization", "Bearer " + accessToken)
+      .retrieve()
+      .bodyToMono(SpotifyCurrentlyPlayingResponse.class)
+      .blockOptional();
   }
 }
