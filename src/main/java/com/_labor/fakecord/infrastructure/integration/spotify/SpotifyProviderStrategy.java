@@ -18,6 +18,9 @@ import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.domain.entity.UserConnection;
 import com._labor.fakecord.domain.enums.ConnectionProvider;
 import com._labor.fakecord.domain.strategy.ConnectionProviderStrategy;
+import com._labor.fakecord.infrastructure.outbox.domain.ConnectionCreatedPayload;
+import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
+import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.UserConnectionRepository;
 import com._labor.fakecord.repository.UserRepository;
 
@@ -35,6 +38,7 @@ public class SpotifyProviderStrategy implements ConnectionProviderStrategy {
   private final UserRepository userRepository;
   private final UserConnectionRepository repository;
   private final SpotifyClient spotifyClient;
+  private final OutboxService outboxService;
 
   private final String STATE_KEY_PREFIX = "oauth_state:";
 
@@ -108,8 +112,17 @@ public class SpotifyProviderStrategy implements ConnectionProviderStrategy {
       .externalName(profile.displayName())
       .showOnProfile(true)
       .build();
-
+    
     repository.save(connection);
+
+    ConnectionCreatedPayload payload = new ConnectionCreatedPayload(
+      userId, 
+      ConnectionProvider.SPOTIFY,
+      profile.id(),
+      profile.displayName()
+    );
+
+    outboxService.publish(userId, OutboxEventType.USER_CONNECTION_CREATED, payload);
 
     log.info("Connection {} for user {} saved successfully via Builder", existingConnections == null ? "created" : "updated", userId);
   }
