@@ -9,6 +9,7 @@ import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import com._labor.fakecord.services.UserStatusService;
+import com._labor.fakecord.services.impl.PresenceService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,31 +17,29 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class WebSocketEventListener {
   
-  private final UserStatusService statusService;
+  private final PresenceService presenceService;
 
-  public WebSocketEventListener(UserStatusService statusService) {
-    this.statusService = statusService;
+  public WebSocketEventListener (PresenceService presenceService) {
+    this.presenceService = presenceService;
   }
 
   @EventListener
   public void handleWebSocketConnectListener(SessionConnectEvent event) {
     StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
-    String userId = getUserId(accessor);
+    UUID userId = UUID.fromString(getUserId(accessor));
 
     if (null != userId) {
-      statusService.setOnline(UUID.fromString(userId));
-      log.debug("Presence: User {} connected", userId);
+      presenceService.processUserOnline(userId);
     }
   }
 
   @EventListener
   public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
     StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
-    String userId = getUserId(accessor);
+    UUID userId = UUID.fromString(getUserId(accessor));
 
     if (userId != null) {
-      statusService.setOffline(UUID.fromString(userId));
-      log.debug("Presence: User {} disconnected", userId);
+      presenceService.processUserOffline(userId);
     }
   }
 
