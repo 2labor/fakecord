@@ -7,7 +7,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import com._labor.fakecord.domain.dto.SpotifyCurrentlyPlayingResponse;
+import com._labor.fakecord.domain.dto.spotify.SpotifyCurrentlyPlayingResponse;
 import com._labor.fakecord.domain.entity.UserConnection;
 import com._labor.fakecord.domain.events.MusicUpdateEvent;
 

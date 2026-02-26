@@ -1,4 +1,4 @@
-package com._labor.fakecord.domain.dto;
+package com._labor.fakecord.domain.dto.spotify;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

@@ -9,9 +9,9 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com._labor.fakecord.config.properties.SpotifyProperties;
-import com._labor.fakecord.domain.dto.SpotifyCurrentlyPlayingResponse;
-import com._labor.fakecord.domain.dto.SpotifyTokenResponse;
-import com._labor.fakecord.domain.dto.SpotifyUserProfile;
+import com._labor.fakecord.domain.dto.spotify.SpotifyCurrentlyPlayingResponse;
+import com._labor.fakecord.domain.dto.spotify.SpotifyTokenResponse;
+import com._labor.fakecord.domain.dto.spotify.SpotifyUserProfile;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

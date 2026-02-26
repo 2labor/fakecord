@@ -5,7 +5,7 @@ import java.time.temporal.ChronoUnit;
 
 import org.springframework.stereotype.Service;
 
-import com._labor.fakecord.domain.dto.SpotifyTokenResponse;
+import com._labor.fakecord.domain.dto.spotify.SpotifyTokenResponse;
 import com._labor.fakecord.domain.entity.UserConnection;
 import com._labor.fakecord.domain.enums.ConnectionProvider;
 import com._labor.fakecord.infrastructure.integration.OAuthTokenProvider;
