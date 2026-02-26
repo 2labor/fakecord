@@ -12,8 +12,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com._labor.fakecord.config.properties.SpotifyProperties;
-import com._labor.fakecord.domain.dto.SpotifyTokenResponse;
-import com._labor.fakecord.domain.dto.SpotifyUserProfile;
+import com._labor.fakecord.domain.dto.spotify.SpotifyTokenResponse;
+import com._labor.fakecord.domain.dto.spotify.SpotifyUserProfile;
 import com._labor.fakecord.domain.entity.User;
 import com._labor.fakecord.domain.entity.UserConnection;
 import com._labor.fakecord.domain.enums.ConnectionProvider;
