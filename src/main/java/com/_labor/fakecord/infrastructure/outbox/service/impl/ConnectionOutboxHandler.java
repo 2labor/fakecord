@@ -5,9 +5,11 @@ import java.util.Set;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+import com._labor.fakecord.infrastructure.outbox.domain.ConnectionCreatedPayload;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxHandler;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ConnectionOutboxHandler implements OutboxHandler{
 
-  private final KafkaTemplate<String, String> kafkaTemplate;
+  private final KafkaTemplate<String, Object> kafkaTemplate;
+  private final ObjectMapper objectMapper;
+  
   private static final String TOPIC = "user-connection-events";
 
   private static final Set<OutboxEventType> SUPPORTED_TYPES = Set.of(
@@ -33,10 +37,18 @@ public class ConnectionOutboxHandler implements OutboxHandler{
   @Override
   public void handle(OutboxEvent event) {
     try {
-      kafkaTemplate.send(TOPIC, event.getAggregateId().toString(), event.getPayload().toString());
-      log.info("Connection event {} for user {} relayed to Kafka", event.getType(), event.getAggregateId());
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to relay connection event: " + event.getType(), e);
-    } 
+      ConnectionCreatedPayload payload = objectMapper.readValue(
+        event.getPayload(), 
+        ConnectionCreatedPayload.class
+      );
+
+      kafkaTemplate.send(TOPIC, event.getAggregateId().toString(), payload);
+      
+      log.info("Connection event {} for user {} relayed to Kafka", 
+          event.getType(), event.getAggregateId());
+  } catch (Exception e) {
+      log.error("Failed to deserialize or relay outbox event {}: {}", event.getId(), e.getMessage());
+      throw new RuntimeException("Failed to relay connection event", e);
+  }
   }
 }
