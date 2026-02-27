@@ -1,5 +1,6 @@
 package com._labor.fakecord.infrastructure.integration.spotify;
 
+import java.time.Duration;
 import java.util.UUID;
 
 import org.springframework.data.redis.core.RedisTemplate;
@@ -22,12 +23,12 @@ public class SpotifyPollingProcessor {
   private final SpotifyClient client;
   private final SpotifyTokenService tokenService;
   private final RedisTemplate<String, String> redisTemplate;
-  private final KafkaTemplate<String, Object> kafkaTemplate;
+  private final KafkaTemplate<String, MusicUpdateEvent> kafkaTemplate;
 
   private static final String STATE_CACHE_KEY = "spotify:state:";
   private static final String TOPIC_MUSIC_UPDATES = "music-status-updates";
 
-  @Async("getAsyncExecutor")
+  @Async
   public void processConnection(UserConnection connection) {
     UUID userId = connection.getUser().getId();
     try {
@@ -71,8 +72,8 @@ public class SpotifyPollingProcessor {
 
       kafkaTemplate.send(TOPIC_MUSIC_UPDATES, userId.toString(), event);
     
-      redisTemplate.opsForValue().set(cacheKey, currentTrack);
-      redisTemplate.opsForValue().set(statusKey, String.valueOf(isPlaying));
+      redisTemplate.opsForValue().set(cacheKey, currentTrack, Duration.ofMinutes(10));
+      redisTemplate.opsForValue().set(statusKey, String.valueOf(isPlaying), Duration.ofMinutes(10));
     }
   
   }
