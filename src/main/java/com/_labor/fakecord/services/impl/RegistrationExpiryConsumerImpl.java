@@ -42,7 +42,14 @@ public class RegistrationExpiryConsumerImpl implements RegistrationExpiryConsume
   public void handleExpiry(String message) {
     try { 
       JsonNode root = mapper.readTree(message);
-      UUID userId = UUID.fromString(root.get("userId").asText());
+      
+      JsonNode userIdNode = root.path("userId");
+      if (userIdNode.isMissingNode() || userIdNode.isNull()) {
+        log.warn("Received expiry message without userId: {}", message);
+        return;
+      }
+
+      UUID userId = UUID.fromString(userIdNode.asText());
 
       emailIdentityRepository.findByUserId(userId).stream()
         .filter(EmailIdentity::isPrimary)
@@ -55,11 +62,13 @@ public class RegistrationExpiryConsumerImpl implements RegistrationExpiryConsume
               userCleanupService.scrubUnverifiedUser(userId);
             }
           },
-          () -> log.warn("No identity found for user {}. Likely already deleted.", userId)
-        );
+            () -> log.warn("No identity found for user {}. Likely already deleted.", userId)
+          );
+    } catch (IllegalArgumentException e) {
+        log.error("Invalid UUID format in message: {}", message);
     } catch (Exception e) {
-      log.error("Critical error in ExpiryConsumer. Message will be re-queued.", e);
-      throw new RuntimeException(e);
+        log.error("Critical error in ExpiryConsumer. Message will be re-queued.", e);
+        throw new RuntimeException(e);
     }
   }
 }
