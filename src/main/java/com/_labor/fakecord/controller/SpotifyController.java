@@ -7,6 +7,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com._labor.fakecord.domain.dto.ConnectionStatusDto;
 import com._labor.fakecord.domain.dto.spotify.SpotifyActivity;
 import com._labor.fakecord.domain.dto.spotify.SpotifyConnectionState;
 import com._labor.fakecord.domain.enums.ConnectionProvider;
@@ -21,6 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.URI;
 import java.util.UUID;
+
+import org.springframework.jdbc.datasource.embedded.ConnectionProperties;
 
 @RestController
 @RequestMapping("/api/v1/spotify")
@@ -44,16 +47,6 @@ public class SpotifyController {
         return ResponseEntity.ok(url);
     }
 
-    @GetMapping("/status")
-    public ResponseEntity<SpotifyConnectionState> getStatus(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return repository
-            .findByUserIdAndProvider(getUserId(userDetails), ConnectionProvider.SPOTIFY)
-            .map(mapper::toStateDto)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.ok(new SpotifyConnectionState(false, null)));
-    }
-
     @GetMapping("/activity")
     public ResponseEntity<SpotifyActivity> getActivity(
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -70,10 +63,7 @@ public class SpotifyController {
     @DeleteMapping("/disconnect")
     public ResponseEntity<Void> disconnect(
             @AuthenticationPrincipal UserDetails userDetails) {
-        UUID userId = getUserId(userDetails);
-        repository.findByUserIdAndProvider(userId, ConnectionProvider.SPOTIFY)
-                .ifPresent(repository::delete);
-        log.info("User {} disconnected Spotify", userId);
+        providerStrategy.disconnect(getUserId(userDetails));
         return ResponseEntity.noContent().build();
     }
 
@@ -115,6 +105,17 @@ public class SpotifyController {
                 .build().toUri();
             return ResponseEntity.status(302).location(redirect).build();
         }
+    }
+
+    @GetMapping("/status")
+    public ConnectionStatusDto getStatus(@AuthenticationPrincipal UserDetails userDetails) {
+        return providerStrategy.getStatus(getUserId(userDetails));
+    }
+
+    @PatchMapping("/toggle")
+    public ResponseEntity<Void> toggle(@AuthenticationPrincipal UserDetails userDetails) {
+        providerStrategy.toggleVisibility(getUserId(userDetails));
+        return ResponseEntity.ok().build();
     }
 
     private UUID getUserId(UserDetails userDetails) {

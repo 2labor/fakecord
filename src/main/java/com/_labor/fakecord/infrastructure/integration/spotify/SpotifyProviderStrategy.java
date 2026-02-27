@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com._labor.fakecord.config.properties.SpotifyProperties;
+import com._labor.fakecord.domain.dto.ConnectionStatusDto;
 import com._labor.fakecord.domain.dto.spotify.SpotifyTokenResponse;
 import com._labor.fakecord.domain.dto.spotify.SpotifyUserProfile;
 import com._labor.fakecord.domain.entity.User;
@@ -22,6 +23,7 @@ import com._labor.fakecord.repository.UserConnectionRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.UserProfileCache;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -147,5 +149,48 @@ public class SpotifyProviderStrategy implements ConnectionProviderStrategy {
       new ConnectionCreatedPayload(userId, ConnectionProvider.SPOTIFY, profile.id(), profile.displayName()));
 
     log.info("Spotify connection {} for user {}", existingId == null ? "created" : "updated", userId);
+  }
+
+
+  @Override
+  public ConnectionStatusDto getStatus(UUID userId) {
+    return repository.findByUserIdAndProvider(userId, ConnectionProvider.SPOTIFY)
+      .map(c -> new ConnectionStatusDto(getProvider(), true,c.getExternalId() , c.getExternalName(), c.isShowOnProfile()))
+      .orElse(new ConnectionStatusDto(getProvider(), false, null, null, false));
+  }
+
+
+  @Override
+  @Transactional  
+  public void toggleVisibility(UUID userId) {
+    UserConnection conn = repository.findByUserIdAndProvider(userId, getProvider())
+      .orElseThrow(() -> new IllegalStateException(getProvider() + " not connected"));
+    
+    conn.setShowOnProfile(!conn.isShowOnProfile());
+    repository.save(conn);
+    
+    profileCache.evict(userId);
+  }
+
+
+  @Override
+  @Transactional
+  public void disconnect(UUID userId) {
+    log.info("Disconnecting Spotify for user: {}", userId);
+
+    UserConnection connection = repository.findByUserIdAndProvider(userId, ConnectionProvider.SPOTIFY)
+      .orElseThrow(() -> new IllegalStateException("Spotify connection not found for user: " + userId));
+
+    repository.delete(connection);
+
+    profileCache.evict(userId);
+
+    outboxService.publish(
+      userId, 
+      OutboxEventType.USER_CONNECTION_DELETED, 
+      new ConnectionCreatedPayload(userId, ConnectionProvider.SPOTIFY, connection.getExternalId(), connection.getExternalName())
+    );
+
+    log.info("Spotify successfully disconnected for user: {}", userId);
   }
 }
