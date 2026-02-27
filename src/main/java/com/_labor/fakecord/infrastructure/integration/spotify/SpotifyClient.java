@@ -24,15 +24,18 @@ public class SpotifyClient {
   private final WebClient webClient;
   private final SpotifyProperties properties;
 
+  private static final String ACCOUNTS_URL = "https://accounts.spotify.com/api/token";
+  private static final String API_BASE_URL = "https://api.spotify.com/v1";
+
   public SpotifyTokenResponse fetchTokens(String code) {
     return webClient.post()
-      .uri("https://accounts.spotify.com/api/token")
+      .uri(ACCOUNTS_URL)
       .contentType(MediaType.APPLICATION_FORM_URLENCODED)
       .body(BodyInserters.fromFormData("grant_type", "authorization_code")
         .with("code", code)
         .with("redirect_uri", properties.redirectUri())
         .with("client_id", properties.clientId())
-        .with("client_secret", properties.secretKey()))
+        .with("client_secret", properties.clientSecret()))
       .retrieve()
       .bodyToMono(SpotifyTokenResponse.class)
       .block();
@@ -41,7 +44,7 @@ public class SpotifyClient {
   public SpotifyUserProfile fetchUserProfile(String accessToken) {
     log.debug("Fetching Spotify user profile with access token");
     return webClient.get()
-      .uri("https://api.spotify.com/v1/me")
+      .uri(API_BASE_URL + "/me")
       .header("Authorization", "Bearer " + accessToken)
       .retrieve()
       .bodyToMono(SpotifyUserProfile.class)
@@ -53,12 +56,12 @@ public class SpotifyClient {
 
     try {
       return webClient.post()
-        .uri("https://accounts.spotify.com/api/token")
+        .uri(ACCOUNTS_URL)
         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
         .body(BodyInserters.fromFormData("grant_type", "refresh_token")
           .with("refresh_token", refreshToken)
           .with("client_id", properties.clientId())
-          .with("client_secret", properties.secretKey()))
+          .with("client_secret", properties.clientSecret()))
         .retrieve()
         .bodyToMono(SpotifyTokenResponse.class)
         .block();
@@ -71,7 +74,7 @@ public class SpotifyClient {
   public Optional<SpotifyCurrentlyPlayingResponse> getCurrentTrack(String accessToken) {
     log.debug("Fetching currently playing track from Spotify");
     return webClient.get()
-      .uri("https://api.spotify.com/v1/me/player/currently-playing")
+      .uri(API_BASE_URL + "/me/player/currently-playing")
       .header("Authorization", "Bearer " + accessToken)
       .retrieve()
       .bodyToMono(SpotifyCurrentlyPlayingResponse.class)

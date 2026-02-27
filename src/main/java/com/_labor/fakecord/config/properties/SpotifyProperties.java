@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.connections.spotify")
 public record SpotifyProperties(
   String clientId,
-  String secretKey,
+  String clientSecret,
   String redirectUri,
   String scope
 ) {}
