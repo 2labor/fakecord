@@ -12,6 +12,7 @@ import com._labor.fakecord.domain.dto.UserProfileFullDto;
 import com._labor.fakecord.domain.entity.UserProfile;
 import com._labor.fakecord.domain.enums.UserStatus;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
+import com._labor.fakecord.repository.UserConnectionRepository;
 import com._labor.fakecord.repository.UserProfileRepository;
 import com._labor.fakecord.services.UserProfileCache;
 import com._labor.fakecord.services.UserStatusService;
@@ -35,16 +36,18 @@ public class UserProfileCacheImpl implements UserProfileCache {
     .maximumSize(10000)
     .expireAfterWrite(5, TimeUnit.MINUTES)
     .build();
+  private final UserConnectionRepository connectionRepository;
 
   private static final String REDIS_PREFIX = "profile:v1:";
   private static final Duration REDIS_TTL = Duration.ofHours(24);
 
-  public UserProfileCacheImpl(UserProfileRepository repository, StringRedisTemplate redisTemplate, ObjectMapper objectMapper, UserProfileMapper mapper, UserStatusService statusService) {
+  public UserProfileCacheImpl(UserProfileRepository repository, StringRedisTemplate redisTemplate, ObjectMapper objectMapper, UserProfileMapper mapper, UserStatusService statusService, UserConnectionRepository connectionRepository) {
     this.repository = repository;
     this.statusService = statusService;
     this.redisTemplate = redisTemplate;
     this.objectMapper = objectMapper;
     this.mapper = mapper;
+    this.connectionRepository = connectionRepository;
   }
 
   @Override
@@ -56,12 +59,16 @@ public class UserProfileCacheImpl implements UserProfileCache {
       if (null != cachedInRedis) return cachedInRedis;
 
       log.info("L2 Cache miss for user {}. Fetching from DB", id);
-      UserProfileFullDto dbProfile = repository.findById(id)
-          .map(entity -> mapper.toFullDto(entity, UserStatus.OFFLINE))
-          .orElseGet(() -> createNegativeProfile(id));
 
-      saveToRedis(id, dbProfile);
-      return dbProfile;
+      return repository.findById(id)
+        .map(profileEntity -> {
+            var connections = connectionRepository.findByUser(profileEntity.getUser());
+            UserProfileFullDto dto = mapper.toFullDto(profileEntity, UserStatus.OFFLINE, connections);
+            
+            saveToRedis(id, dto);
+            return dto;
+        })
+        .orElseGet(() -> createNegativeProfile(id));
     });
 
   boolean isOnline = statusService.isOnline(userId);

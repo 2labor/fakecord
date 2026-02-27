@@ -1,5 +1,6 @@
 package com._labor.fakecord.domain.dto;
 
+import java.util.List;
 import java.util.UUID;
 
 import com._labor.fakecord.domain.enums.UserStatus;
@@ -17,6 +18,7 @@ public record UserProfileFullDto(
   Object metadata,
   UserStatus status,         
   UserStatus statusPreference,
+  List<ConnectionDto> connections,
   boolean isGhost
 ) {
   public static class UserProfileFullDtoBuilder {

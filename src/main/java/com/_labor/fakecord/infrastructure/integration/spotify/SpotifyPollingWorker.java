@@ -21,22 +21,24 @@ import lombok.extern.slf4j.Slf4j;
 public class SpotifyPollingWorker {
   private final RedisTemplate<String, String> redisTemplate;
   private final UserConnectionRepository repository;
-  private final SpotifyTokenService tokenService;
-  private final SpotifyClient client;
-  // private final KafkaTemplate<String, Object> kafkaTemplate;
+  private final SpotifyPollingProcessor processor;
 
   private static final String ACTIVE_POLLING_KEY = "spotify:active_polling";
 
   @Scheduled(fixedDelay = 15000)
-  public void pooling() {
+  public void polling() {
     Set<String> userIds = redisTemplate.opsForSet().members(ACTIVE_POLLING_KEY);
-    if (null == userIds || userIds.isEmpty()) return;
+    if (userIds == null || userIds.isEmpty()) {
+      log.trace("No users in active polling");
+      return;
+    }
 
-    log.debug("Starting polling cycle for {} users", userIds.size()); 
-    List<UUID> userUuid = userIds.stream()
-      .map(UUID::fromString)
-      .toList();
+    log.info("Starting Spotify polling cycle for {} users", userIds.size());
 
-    List<UserConnection> connections = repository.findAllByUserIdInAndProvider(userUuid, ConnectionProvider.SPOTIFY);
+    List<UUID> uuids = userIds.stream().map(UUID::fromString).toList();
+
+    List<UserConnection> connections = repository.findAllByUserIdInAndProvider(uuids, ConnectionProvider.SPOTIFY);
+
+    connections.forEach(conn -> processor.processConnection(conn));
   }
 }

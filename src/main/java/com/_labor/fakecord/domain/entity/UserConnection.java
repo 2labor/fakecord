@@ -3,6 +3,9 @@ package com._labor.fakecord.domain.entity;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import com._labor.fakecord.domain.enums.ConnectionProvider;
 import com._labor.fakecord.infrastructure.persistence.converter.EncryptionConverter;
 
@@ -68,8 +71,9 @@ public class UserConnection {
   @Column(name = "show_on_profile")
   private boolean showOnProfile = true;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "metadata", columnDefinition = "jsonb")
-  private String metadata;
+  private String metadata = "{}";
 
   @Column(name = "created_at")
   private Instant createdAt;
