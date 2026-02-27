@@ -13,5 +13,6 @@ import com._labor.fakecord.domain.enums.ConnectionProvider;
 public interface UserConnectionRepository extends JpaRepository<UserConnection, UUID>{
   Optional<UserConnection> findByUserAndProvider(User user, ConnectionProvider provider);
   List<UserConnection> findAllByUserIdInAndProvider(List<UUID> userIds, ConnectionProvider provider);
+  Optional<UserConnection> findByUserIdAndProvider(UUID userIds, ConnectionProvider provider);
   boolean existsByUserIdAndProvider(UUID userId, ConnectionProvider provider);
 }
