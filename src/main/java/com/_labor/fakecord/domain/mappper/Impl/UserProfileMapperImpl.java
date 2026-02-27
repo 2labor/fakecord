@@ -1,20 +1,38 @@
 package com._labor.fakecord.domain.mappper.Impl;
 
+import java.util.List;
+
 import org.springframework.stereotype.Component;
 
+import com._labor.fakecord.domain.dto.ConnectionDto;
 import com._labor.fakecord.domain.dto.UserProfileFullDto;
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.dto.UserProfileUpdateDto;
+import com._labor.fakecord.domain.entity.UserConnection;
 import com._labor.fakecord.domain.entity.UserProfile;
 import com._labor.fakecord.domain.enums.UserStatus;
+import com._labor.fakecord.domain.mappper.ConnectionMapper;
 import com._labor.fakecord.domain.mappper.UserProfileMapper;
+import com.rabbitmq.client.Connection;
+
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor
 public class UserProfileMapperImpl implements UserProfileMapper {
 
+  private final ConnectionMapper connectionMapper;
+
   @Override
-  public UserProfileFullDto toFullDto(UserProfile profile, UserStatus status) {
+  public UserProfileFullDto toFullDto(UserProfile profile, UserStatus status, List<UserConnection> connections) {
     if (null == profile) return null;
+
+    List<ConnectionDto> connectionDtos = (null != connections) 
+      ? connections.stream()
+        .filter(UserConnection::isShowOnProfile)
+        .map(connectionMapper::toDto)
+        .toList()
+      : List.of();
 
     return UserProfileFullDto.builder()
       .userId(profile.getId())
@@ -26,6 +44,7 @@ public class UserProfileMapperImpl implements UserProfileMapper {
       .metadata(profile.getMetadata())
       .status(status != null ? status : UserStatus.OFFLINE)
       .statusPreference(profile.getStatusPreference())
+      .connections(connectionDtos)
       .isGhost(false)
       .build();
   }
