@@ -37,6 +37,7 @@ public class SpotifyMapperImpl implements SpotifyMapper {
       item.name(),
       artists,
       artUrl,
+      item.id(),
       item.durationMs(),
       response.progressMs(),
       response.isPlaying(),

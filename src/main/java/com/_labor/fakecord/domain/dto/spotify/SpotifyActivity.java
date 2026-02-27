@@ -7,6 +7,7 @@ public record SpotifyActivity(
   String artistName,
   @JsonProperty("albumArtUrl")
   String albumUrl,
+  String trackId, 
   long durationMs,
   long progressMs,
   boolean isPlaying,
