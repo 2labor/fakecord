@@ -8,6 +8,7 @@ public record MusicUpdateEvent (
   UUID userId,
   String trackName,
   String artistName,
+  String trackId,
   @JsonProperty("albumArtUrl")
   String albumArtUrl,
   long durationMs,

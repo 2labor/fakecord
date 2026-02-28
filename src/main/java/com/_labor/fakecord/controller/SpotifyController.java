@@ -25,6 +25,8 @@ import java.util.UUID;
 
 import org.springframework.jdbc.datasource.embedded.ConnectionProperties;
 
+import com._labor.fakecord.services.SpotifyService;
+
 @RestController
 @RequestMapping("/api/v1/spotify")
 @RequiredArgsConstructor
@@ -36,6 +38,7 @@ public class SpotifyController {
     private final SpotifyClient spotifyClient;
     private final SpotifyTokenService tokenService;
     private final SpotifyProviderStrategy providerStrategy;
+    private final SpotifyService spotifyService;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -120,5 +123,12 @@ public class SpotifyController {
 
     private UUID getUserId(UserDetails userDetails) {
         return UUID.fromString(userDetails.getUsername());
+    }
+
+    @GetMapping("/activity/{userId}")
+    public ResponseEntity<SpotifyActivity> getActivityByUserId( @PathVariable UUID userId) { 
+        return spotifyService.getCachedActivity(userId) 
+        .map(ResponseEntity::ok) 
+        .orElse(ResponseEntity.noContent().build());
     }
 }

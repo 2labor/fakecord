@@ -64,13 +64,14 @@ public class SecurityConfig {
         .cors(Customizer.withDefaults())
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/", "/index.html", "/static/**", "/*.js", "/*.css").permitAll()
-            .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
-            .requestMatchers("/api/auth/verify", "/api/auth/mfa/**").permitAll()
-            .requestMatchers("/api/v1/spotify/callback").permitAll() 
-            .requestMatchers("/api/auth/**", "/login/**", "/oauth2/**").permitAll()
-            .requestMatchers("/api/profiles/**", "/api/v1/spotify/**").authenticated()
-            .anyRequest().authenticated())
+        .requestMatchers("/", "/index.html", "/static/**", "/*.js", "/*.css").permitAll()
+        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
+        .requestMatchers("/api/auth/verify", "/api/auth/mfa/**").permitAll()
+        .requestMatchers("/api/v1/spotify/callback").permitAll() 
+        .requestMatchers("/api/auth/**", "/login/**", "/oauth2/**").permitAll()
+        .requestMatchers("/fakecord-media/**").permitAll() 
+        .requestMatchers("/api/profiles/**", "/api/v1/spotify/**").authenticated()
+        .anyRequest().authenticated())
         .oauth2Login(oauth2 -> oauth2
             .loginPage("/")
             .userInfoEndpoint(userInfo -> userInfo
