@@ -20,7 +20,8 @@ import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.FriendRequestRepository;
 import com._labor.fakecord.repository.UserRepository;
 import com._labor.fakecord.services.FriendRequestService;
-import com._labor.fakecord.services.RelationshipService;
+import com._labor.fakecord.services.RelationshipCommandService;
+import com._labor.fakecord.services.RelationshipQueryService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 public class FriendRequestServiceImpl implements FriendRequestService {
 
   private final FriendRequestRepository repository;
-  private final RelationshipService relationshipService;
+  private final RelationshipCommandService relationshipCommandService;
+  private final RelationshipQueryService relationshipQueryService;
   private final UserRepository userRepository;
   private final OutboxService outboxService;
 
@@ -42,7 +44,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
       throw new RuntimeException("You cannot send request to yourself");
     }
 
-    RelationshipStatus status = relationshipService.getRelationshipStatus(senderId, targetId);
+    RelationshipStatus status = relationshipQueryService.getRelationshipStatus(senderId, targetId);
 
     if (status == RelationshipStatus.BLOCKED) {
       throw new RuntimeException("User is blocked");
@@ -80,7 +82,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     .filter(r -> r.getStatus() == RequestStatus.PENDING)
       .orElseThrow(() -> new RuntimeException("Request not found"));
 
-    relationshipService.createFriendship(requesterId, currentUser);
+    relationshipCommandService.createFriendship(requesterId, currentUser);
 
     repository.delete(request);
 
