@@ -10,6 +10,7 @@ import com._labor.fakecord.infrastructure.outbox.domain.CacheEvictEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayload;
+import com._labor.fakecord.infrastructure.outbox.domain.enums.CacheSubType;
 import com._labor.fakecord.infrastructure.outbox.service.OutboxHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -38,7 +39,7 @@ public class CacheEvictOutboxHandler implements OutboxHandler {
   @Override
 public void handle(OutboxEvent event) {
     eventPublisher.publish(new CacheEvictEvent(
-        event.getAggregateId(), "friends", System.currentTimeMillis()
+        event.getAggregateId(), "friends", CacheSubType.NONE, System.currentTimeMillis()
     ));
 
     try {
@@ -49,7 +50,7 @@ public void handle(OutboxEvent event) {
             ? payload.actorId()
             : payload.targetId();
         eventPublisher.publish(new CacheEvictEvent(
-            other, "friends", System.currentTimeMillis()
+            other, "friends", CacheSubType.NONE, System.currentTimeMillis()
         ));
     } catch (Exception e) {
         log.warn("Could not parse payload for dual evict: {}", e.getMessage());
