@@ -17,7 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.dto.UserProfileShort;
 import com._labor.fakecord.domain.enums.RelationshipStatus;
-import com._labor.fakecord.services.RelationshipService;
+import com._labor.fakecord.services.RelationshipCommandService;
+import com._labor.fakecord.services.RelationshipQueryService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RelationshipController {
   
-  private final RelationshipService service;
+  private final RelationshipCommandService relationshipCommandService;
+  private final RelationshipQueryService relationshipQueryService;
 
   @DeleteMapping("/friends/{friendId}")
   public ResponseEntity<Void> removeFriend(
@@ -36,7 +38,7 @@ public class RelationshipController {
     @PathVariable UUID friendId
   ) {
     UUID userId = getUserId(userDetails);
-    service.removeFriend(userId, friendId);
+    relationshipCommandService.removeFriend(userId, friendId);
     return ResponseEntity.noContent().build();
   }
 
@@ -46,7 +48,7 @@ public class RelationshipController {
     @PathVariable UUID targetId
   ) {
     UUID userId = getUserId(userDetails);
-    service.blockUser(userId, targetId);
+    relationshipCommandService.blockUser(userId, targetId);
     return ResponseEntity.ok().build();
   }
 
@@ -57,7 +59,7 @@ public class RelationshipController {
   ) {
     UUID userId = getUserId(userDetails);
 
-    service.unblockUser(userId, targetId);
+    relationshipCommandService.unblockUser(userId, targetId);
     return ResponseEntity.noContent().build();
   }
 
@@ -67,7 +69,7 @@ public class RelationshipController {
     Pageable pageable
   ) {
     UUID userId = getUserId(userDetails);
-    return ResponseEntity.ok(service.getFriendsList(userId, pageable));
+    return ResponseEntity.ok(relationshipQueryService.getFriendsList(userId, pageable));
   }
 
   @GetMapping("/blocked")
@@ -77,7 +79,7 @@ public class RelationshipController {
   ) {
     UUID userId = getUserId(userDetails);
 
-    return ResponseEntity.ok(service.getBlockedUsers(userId, pageable));
+    return ResponseEntity.ok(relationshipQueryService.getBlockedUsers(userId, pageable));
   }
 
   @GetMapping("/status/{targetId}")
@@ -86,7 +88,7 @@ public class RelationshipController {
     @PathVariable UUID targetId
   ) {
     UUID userId = getUserId(userDetails);
-    RelationshipStatus status = service.getRelationshipStatus(userId, targetId);
+    RelationshipStatus status = relationshipQueryService.getRelationshipStatus(userId, targetId);
     return ResponseEntity.ok(status);
   }
 
@@ -96,7 +98,7 @@ public class RelationshipController {
     @PathVariable UUID friendId
   ) {
     UUID userId = getUserId(userDetails);
-    return ResponseEntity.ok(service.getMutualFriends(userId, friendId));
+    return ResponseEntity.ok(relationshipQueryService.getMutualFriends(userId, friendId));
   }
 
   @GetMapping("/mutual/{targetId}/count")
@@ -105,7 +107,7 @@ public class RelationshipController {
     @PathVariable UUID targetId
   ) {
     UUID userId = getUserId(userDetails);
-    return ResponseEntity.ok(service.getMutualFriendsCount(userId, targetId));
+    return ResponseEntity.ok(relationshipQueryService.getMutualFriendsCount(userId, targetId));
   }
   
   private UUID getUserId(UserDetails userDetails) {

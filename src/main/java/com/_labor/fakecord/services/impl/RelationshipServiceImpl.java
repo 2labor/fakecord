@@ -13,7 +13,8 @@ import com._labor.fakecord.domain.enums.RelationshipStatus;
 import com._labor.fakecord.repository.FriendRequestRepository;
 import com._labor.fakecord.repository.RelationshipRepository;
 import com._labor.fakecord.repository.UserRepository;
-import com._labor.fakecord.services.RelationshipService;
+import com._labor.fakecord.services.RelationshipCommandService;
+import com._labor.fakecord.services.RelationshipQueryService;
 
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class RelationshipServiceImpl implements RelationshipService{
+public class RelationshipServiceImpl implements RelationshipCommandService, RelationshipQueryService {
 
   private final RelationshipRepository repository;
   private final UserRepository userRepository;
