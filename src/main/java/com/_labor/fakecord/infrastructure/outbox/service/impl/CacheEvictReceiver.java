@@ -34,7 +34,7 @@ public class CacheEvictReceiver {
         log.debug("L1/L2 eviction for user_profile: {}", event.aggregateId());
       } 
       case "friends" -> {
-        long newVersion = versionService.incrementVersion(event.aggregateId());
+        long newVersion = versionService.incrementVersion("friends", event.aggregateId());
 
         String oldCacheKey = String.format("friends:%s:v:%d:*", event.aggregateId(), newVersion - 1);
 

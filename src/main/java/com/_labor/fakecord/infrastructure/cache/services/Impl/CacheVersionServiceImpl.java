@@ -16,18 +16,21 @@ import lombok.extern.slf4j.Slf4j;
 public class CacheVersionServiceImpl implements CacheVersionService {
 
   private final StringRedisTemplate redisTemplate;
-  private static final String VERSION_PREFIX = "friends:version:";
 
   @Override
-  public long getVersion(UUID userId) {
-    String version = redisTemplate.opsForValue().get(VERSION_PREFIX + userId);
+  public long getVersion(String namespace, UUID userId) {
+    String version = redisTemplate.opsForValue().get(buildKey(namespace, userId));
     return (version == null) ? 0 : Long.parseLong(version);
   }
 
   @Override
-  public long incrementVersion(UUID userId) {
-    Long newVersion = redisTemplate.opsForValue().increment(VERSION_PREFIX + userId);
+  public long incrementVersion(String namespace, UUID userId) {
+    Long newVersion = redisTemplate.opsForValue().increment(buildKey(namespace, userId));
     return (newVersion == null) ? 0 : newVersion;
   }
   
+
+  private final String buildKey(String namespace, UUID userId) {
+    return namespace + ":version:" + userId;
+  }
 }
