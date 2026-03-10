@@ -58,7 +58,7 @@ public class CachedRelationshipServiceImpl implements RelationshipQueryService {
 
     Slice<UserProfileShort> db = delegate.getFriendsList(userId, pageable);
 
-    CachedSlice dto = new CachedSlice<>(
+    CachedSlice<UserProfileShort> dto = new CachedSlice<>(
       db.getContent(), db.getNumber(), db.getSize(), db.hasNext()
     );
 
@@ -71,7 +71,7 @@ public class CachedRelationshipServiceImpl implements RelationshipQueryService {
   private Slice<UserProfileShort> convertToSlice(CachedSlice<UserProfileShort> dto, Pageable pageable) {
     return new SliceImpl<>(dto.content(), pageable, dto.hasNext());
   }
-
+  
   @Override
   public Slice<UserProfileShort> getBlockedUsers(UUID userId, Pageable pageable) {
     return delegate.getBlockedUsers(userId, pageable);

@@ -30,7 +30,7 @@ public class CacheVersionServiceImpl implements CacheVersionService {
   }
   
 
-  private final String buildKey(String namespace, UUID userId) {
+  private String buildKey(String namespace, UUID userId) {
     return namespace + ":version:" + userId;
   }
 }

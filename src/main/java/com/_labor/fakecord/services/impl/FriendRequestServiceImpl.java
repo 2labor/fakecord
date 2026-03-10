@@ -19,7 +19,8 @@ import com._labor.fakecord.infrastructure.outbox.domain.RelationshipActionPayloa
 import com._labor.fakecord.infrastructure.outbox.service.OutboxService;
 import com._labor.fakecord.repository.FriendRequestRepository;
 import com._labor.fakecord.repository.UserRepository;
-import com._labor.fakecord.services.FriendRequestService;
+import com._labor.fakecord.services.FriendRequestCommandService;
+import com._labor.fakecord.services.FriendRequestQueryService;
 import com._labor.fakecord.services.RelationshipCommandService;
 import com._labor.fakecord.services.RelationshipQueryService;
 
@@ -29,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class FriendRequestServiceImpl implements FriendRequestService {
+public class FriendRequestServiceImpl implements FriendRequestCommandService, FriendRequestQueryService {
 
   private final FriendRequestRepository repository;
   private final RelationshipCommandService relationshipCommandService;

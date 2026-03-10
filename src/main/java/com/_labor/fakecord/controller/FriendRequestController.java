@@ -17,7 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com._labor.fakecord.domain.enums.RequestSource;
-import com._labor.fakecord.services.FriendRequestService;
+import com._labor.fakecord.services.FriendRequestCommandService;
+import com._labor.fakecord.services.FriendRequestQueryService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +35,8 @@ import com._labor.fakecord.domain.dto.UserProfileShort;
 @Slf4j
 public class FriendRequestController {
   
-  private final FriendRequestService service;
+  private final FriendRequestCommandService commandService;
+  private final FriendRequestQueryService queryService;
 
   @PostMapping("/send/{targetId}")
   public ResponseEntity<Void> sendRequest(
@@ -43,7 +45,7 @@ public class FriendRequestController {
     @RequestParam(defaultValue = "SEARCH") RequestSource source
   ) {
     UUID userId = getUserId(currentUserId);
-    service.sendFriendRequest(userId, targetId, source);
+    commandService.sendFriendRequest(userId, targetId, source);
     return ResponseEntity.accepted().build();
   }
 
@@ -54,7 +56,7 @@ public class FriendRequestController {
   ) {
     UUID userId = getUserId(currentUserId);
 
-    service.acceptFriendRequest(userId, targetId);
+    commandService.acceptFriendRequest(userId, targetId);
     return ResponseEntity.ok().build();
   }
 
@@ -65,7 +67,7 @@ public class FriendRequestController {
   ) {
     UUID userId = getUserId(currentUserId);
 
-    service.declineOrCancelRequest(userId, targetId);
+    commandService.declineOrCancelRequest(userId, targetId);
     return ResponseEntity.noContent().build();
   }
 
@@ -76,7 +78,7 @@ public class FriendRequestController {
   ) {
     UUID userId = getUserId(currentUserId);
 
-    service.ignoreRequest(userId, requesterId);
+    commandService.ignoreRequest(userId, requesterId);
     return ResponseEntity.ok().build();
   }
 
@@ -87,7 +89,7 @@ public class FriendRequestController {
   ) {
     UUID userId = getUserId(currentUserId);
 
-    return ResponseEntity.ok(service.getIncomingRequests(userId, pageable));
+    return ResponseEntity.ok(queryService.getIncomingRequests(userId, pageable));
   }
 
   @GetMapping("/outgoing")
@@ -98,7 +100,7 @@ public class FriendRequestController {
 
     UUID userId = getUserId(currentUserId);
 
-    return ResponseEntity.ok(service.getOutgoingRequests(userId, pageable));
+    return ResponseEntity.ok(queryService.getOutgoingRequests(userId, pageable));
   }
 
   @GetMapping("/summary")
@@ -106,8 +108,8 @@ public class FriendRequestController {
     @AuthenticationPrincipal UserDetails userDetails
   ) {
     UUID userId = getUserId(userDetails);
-    long incoming = service.getCounterIncomingRequests(userId);
-    long outgoing = service.getCounterOutgoingRequests(userId);
+    long incoming = queryService.getCounterIncomingRequests(userId);
+    long outgoing = queryService.getCounterOutgoingRequests(userId);
 
     return ResponseEntity.ok(new FriendRequestSummary(
       incoming,
