@@ -54,12 +54,31 @@ public class PermissionAspect {
     String channelIdStr = requirePermission.channelId();
     Long channelId = channelIdStr.isBlank() ? null : parseSpelLong(channelIdStr, context, method);
 
-    ServerRolePermissions requiredPermission = requirePermission.value();
+    ServerRolePermissions permission = resolvePermission(requirePermission, context, method);
+
     if (channelId != null) {
-      service.requestChannelPermission(userId, serverId, channelId, requiredPermission);
+      service.requestChannelPermission(userId, serverId, channelId, permission);
     } else {
-      service.requirePermission(userId, serverId, requiredPermission);
+      service.requirePermission(userId, serverId, permission);
     }
+  }
+
+  private ServerRolePermissions resolvePermission(RequirePermission annotation, EvaluationContext context, Method method) {
+    if(!annotation.permissionSpel().isBlank()) {
+      try {
+        String permName = parser.parseExpression(annotation.permissionSpel()).getValue(context, String.class);
+        return ServerRolePermissions.valueOf(permName);
+      } catch (Exception e) {
+        log.error("Failed to parse permissionSpel '{}' in method '{}'. Cause: {}", 
+        annotation.permissionSpel(), method.getName(), e.getMessage(), e);
+        throw new AccessDeniedException("Permission check failed due to invalid expression evaluation: " + e.getMessage());
+      }
+    }    
+      if (annotation.value().length > 0) {
+      return annotation.value()[0];
+    }
+
+    throw new IllegalStateException("Neither value nor permissionSpel was specified in @RequirePermission on method " + method.getName());  
   }
 
   private UUID getCurrentUserId() {

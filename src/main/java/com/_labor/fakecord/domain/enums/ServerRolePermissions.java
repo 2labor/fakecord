@@ -23,7 +23,13 @@ public enum ServerRolePermissions {
   MANAGE_MESSAGES(1L << 8, "Manage Messages", "Allows deleting or pinning messages sent by other members", RolePermissionCategory.TEXT_CHANNEL),
   MANAGE_CHANNELS(1L << 9, "Manage Channels", "Allows creating, editing, or deleting text and voice channels", RolePermissionCategory.TEXT_CHANNEL),
   MANAGE_SERVER(1L << 10, "Menage channels", "Allows update and menage server credentials", RolePermissionCategory.SERVER),
-  ADMIN_ACCESS(1L << 11, "Administrator", "Grants full permissions and bypasses channel overrides. Dangerous permission!", RolePermissionCategory.ADMINISTRATION);
+  ADMIN_ACCESS(1L << 11, "Administrator", "Grants full permissions and bypasses channel overrides. Dangerous permission!", RolePermissionCategory.ADMINISTRATION),
+  
+  BAN_MEMBERS(1L << 12, "Ban member", "Allows user to ban other users on a server", RolePermissionCategory.ADMINISTRATION),
+  KICK_MEMBERS(1L << 13, "Kick members", "Allows user to kick other members on the server", RolePermissionCategory.ADMINISTRATION),
+  TIMEOUT_MEMBERS(1L << 14, "Timeout members", "Allows user to timeout other users on the server", RolePermissionCategory.ADMINISTRATION),
+  MANAGE_RESTRICTIONS(1L << 15, "Manage restrictions", "Allows user to manage restrictions on the server", RolePermissionCategory.ADMINISTRATION),
+VIEW_AUDIT_LOG(1l << 16, "View audit log", "Allows user to view server's audit log", RolePermissionCategory.ADMINISTRATION);
   
   private final Long mask;
   private final String title;
