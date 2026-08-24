@@ -12,7 +12,9 @@ import com._labor.fakecord.domain.enums.ServerRolePermissions;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface RequirePermission {
-  ServerRolePermissions value();
+  ServerRolePermissions[] value() default {};
+  String permissionSpel() default "";
   String serverId() default "#serverId";
   String channelId() default "";
 }
+  
