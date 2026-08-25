@@ -28,6 +28,7 @@ import com._labor.fakecord.domain.enums.ChannelType;
 import com._labor.fakecord.domain.enums.MessageType;
 import com._labor.fakecord.domain.enums.ServerRolePermissions;
 import com._labor.fakecord.domain.enums.SocketEventType;
+import com._labor.fakecord.infrastructure.cache.services.ServerRestrictionCache;
 import com._labor.fakecord.infrastructure.id.IdGenerator;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 import com._labor.fakecord.infrastructure.outbox.domain.payload.MediaTaskPayload;
@@ -66,6 +67,7 @@ public class MessageServiceImpl implements MessageService{
   private final MessageEnricher enricher;
   private final OutboxService outboxService;
   private final PermissionService permissionService;
+  private final ServerRestrictionCache restrictionCache;
   
 
   @Override
@@ -84,6 +86,10 @@ public class MessageServiceImpl implements MessageService{
     MessageContext messageContext;
 
     if (channel.getType().isGuildType()) {
+      restrictionCache.get(channel.getServerId(), authorId).ifPresent(timeout -> {
+        throw new AccessDeniedException("You are currently timed out on this server until " + timeout.expiredAt() + ". Reason: " + timeout.reason());
+      });
+
       permissionService.requestChannelPermission(authorId, channel.getServerId(), channelId, ServerRolePermissions.WRITE_TO_CHANNEL);
 
       messageContext = GuildMessageContext.builder()
