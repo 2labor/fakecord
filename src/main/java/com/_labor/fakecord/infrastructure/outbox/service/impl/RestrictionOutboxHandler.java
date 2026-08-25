@@ -5,7 +5,9 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 import com._labor.fakecord.domain.enums.ServerRestrictionType;
+import com._labor.fakecord.infrastructure.cache.Dto.UserTimeoutCacheDto;
 import com._labor.fakecord.infrastructure.cache.services.PermissionCache;
+import com._labor.fakecord.infrastructure.cache.services.ServerRestrictionCache;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEvent;
 import com._labor.fakecord.infrastructure.outbox.domain.OutboxEventType;
 import com._labor.fakecord.infrastructure.outbox.domain.payload.ServerRestrictionAppliedPayload;
@@ -25,6 +27,7 @@ public class RestrictionOutboxHandler implements OutboxHandler {
   private final ObjectMapper objectMapper;
   private final ServerMemberService memberService;
   private final PermissionCache permissionCache;
+  private final ServerRestrictionCache cacheProvider;
 
   private final static Set<OutboxEventType> SUPPORTED = Set.of(
     OutboxEventType.SERVER_RESTRICTION_APPLIED,
@@ -46,7 +49,12 @@ public class RestrictionOutboxHandler implements OutboxHandler {
             if (memberService.checkIsUserMember(payload.serverId(), payload.targetId())) {
               memberService.removeMemberFromServer(payload.targetId(), payload.serverId());
             }
+          } 
+
+          if (payload.type() == ServerRestrictionType.TIMEOUT) {
+            cacheProvider.put(new UserTimeoutCacheDto(payload.serverId(), payload.targetId(), payload.reason(), payload.expiredAt().toEpochMilli()));
           }
+
           permissionCache.evictUserServerPermission(payload.serverId(), payload.targetId());
 
           log.info("Applied side-effects for restriction [{}] on server {} for user {}", payload.type(), payload.serverId(), payload.targetId());
@@ -56,6 +64,10 @@ public class RestrictionOutboxHandler implements OutboxHandler {
           ServerRestrictionDeactivatedPayload payload = objectMapper.readValue(
             event.getPayload(), ServerRestrictionDeactivatedPayload.class
           );
+
+          if (payload.type() == ServerRestrictionType.TIMEOUT) {
+            cacheProvider.evict(payload.serverId(), payload.targetId());
+          }
 
           permissionCache.evictUserServerPermission(payload.serverId(), payload.targetId());
 

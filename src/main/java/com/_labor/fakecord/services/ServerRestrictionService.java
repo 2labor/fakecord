@@ -14,6 +14,7 @@ public interface ServerRestrictionService {
   void deactivateRestriction(UUID operatorId, Long restrictionId);
   
   ServerRestriction getRestriction(UUID operatorId, Long restrictionId);
+  boolean isUserBanned(Long serverId, UUID targetId);
 
   List<ServerRestriction> getActiveUserRestrictions(UUID operatorId, UUID targetId, Long serverId);
   

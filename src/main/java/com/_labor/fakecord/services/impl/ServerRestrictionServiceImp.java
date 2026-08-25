@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ServerRestrictionServiceImpl implements ServerRestrictionService {
+public class ServerRestrictionServiceImp implements ServerRestrictionService {
 
   private final ServerRestrictionRepository repository;
   private final ServerMemberService memberService;
@@ -131,6 +131,14 @@ public class ServerRestrictionServiceImpl implements ServerRestrictionService {
     requestAccess(operatorId, serverId);
 
     return repository.findByServerIdOrderByIdDesc(serverId, pageable);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public boolean isUserBanned(Long serverId, UUID targetId) {
+    if (serverId == null || targetId == null) return false;
+
+    return repository.existsByServerIdAndTargetIdAndTypeAndActiveTrue(serverId, targetId, ServerRestrictionType.BAN);
   }
   
   private void requestAccess(UUID operatorId, Long serverId) {
