@@ -18,11 +18,14 @@ import com._labor.fakecord.security.invites.InviteCodeGenerator;
 import com._labor.fakecord.services.ServerDomainService;
 import com._labor.fakecord.services.ServerInviteService;
 import com._labor.fakecord.services.ServerMemberService;
+import com._labor.fakecord.services.ServerRestrictionService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ServerInviteServiceImpl implements ServerInviteService {
 
   private final ServerInviteCache cache;
@@ -31,6 +34,7 @@ public class ServerInviteServiceImpl implements ServerInviteService {
   private final ServerInviteMapper mapper;
   private final ServerMemberService serverMemberService;
   private final ServerDomainService serversService;
+  private final ServerRestrictionService restrictionService;
 
   @Transactional
   @Override
@@ -56,6 +60,11 @@ public class ServerInviteServiceImpl implements ServerInviteService {
   public void acceptInvite(UUID userId, String code) {
     ServerInviteResponseDto serverInvite = cache.get(code)
       .orElseThrow(() -> new IllegalArgumentException("No code with such code!"));
+
+    if (restrictionService.isUserBanned(serverInvite.serverId(), userId)) {
+      log.warn("User {} tried to join server {} via invite {}, but is banned", userId, serverInvite.serverId(), code);
+      throw new AccessDeniedException("USER_IS_BANNED_FROM_SERVER");
+    }
 
     if (serverMemberService.checkIsUserMember(serverInvite.serverId(), userId)) {
       throw new IllegalArgumentException("You already a member of a server!");
